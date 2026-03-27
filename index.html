@@ -1,0 +1,1025 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TXTools - Importador de Viajes v9</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f5f5f5; padding: 20px; line-height: 1.5; }
+.container { max-width: 1200px; margin: 0 auto; background: white; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); padding: 24px; }
+h1 { font-size: 20px; margin-bottom: 20px; color: #333; }
+.tabs { display: flex; gap: 8px; margin-bottom: 20px; border-bottom: 1px solid #e0e0e0; padding-bottom: 12px; flex-wrap: wrap; }
+.tab-btn { padding: 10px 16px; border-radius: 8px; font-size: 13px; font-weight: 500; cursor: pointer; border: 1px solid #ddd; background: white; transition: all 0.2s; }
+.tab-btn.active { background: #e3f2fd; color: #1976d2; border-color: #1976d2; }
+.tab-btn:hover { background: #f5f5f5; }
+.panel { display: none; }
+.panel.active { display: block; }
+.alert { padding: 12px 16px; border-radius: 8px; font-size: 13px; margin-bottom: 12px; }
+.alert-info { background: #e3f2fd; color: #1565c0; }
+.alert-success { background: #e8f5e9; color: #2e7d32; }
+.alert-warning { background: #fff3e0; color: #e65100; }
+.alert-error { background: #ffebee; color: #c62828; }
+textarea { width: 100%; font-family: 'Monaco', 'Consolas', monospace; font-size: 11px; padding: 12px; border: 1px solid #ddd; border-radius: 8px; resize: vertical; }
+button { padding: 10px 20px; border-radius: 8px; font-size: 14px; cursor: pointer; border: none; transition: all 0.2s; }
+.btn-primary { background: #1976d2; color: white; }
+.btn-primary:hover { background: #1565c0; }
+.btn-primary:disabled { background: #90caf9; cursor: not-allowed; }
+.btn-secondary { background: #f5f5f5; color: #333; border: 1px solid #ddd; }
+.btn-secondary:hover { background: #e0e0e0; }
+.btn-success { background: #4caf50; color: white; }
+.btn-success:hover { background: #43a047; }
+.stats-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; margin: 16px 0; }
+.stat-box { background: #f5f5f5; padding: 16px; border-radius: 8px; text-align: center; }
+.stat-num { font-size: 22px; font-weight: 600; color: #333; }
+.stat-label { font-size: 11px; color: #666; margin-top: 4px; }
+.field-grid { display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 12px; margin-bottom: 20px; }
+.field-group { display: flex; flex-direction: column; gap: 4px; }
+.field-group.required label::after { content: ' *'; color: #c62828; }
+.field-group label { font-size: 12px; color: #666; font-weight: 500; }
+.field-group input, .field-group select { padding: 8px 12px; border: 1px solid #ddd; border-radius: 6px; font-size: 13px; }
+.field-group input:focus, .field-group select:focus { outline: none; border-color: #1976d2; }
+.field-group input.error { border-color: #c62828; background: #ffebee; }
+.service-card { border: 1px solid #e0e0e0; border-radius: 8px; padding: 12px; margin-bottom: 8px; }
+.service-card.negative { border-color: #ff9800; background: #fff8e1; }
+.service-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+.service-title { font-weight: 500; font-size: 13px; }
+.service-cost { font-weight: 600; font-size: 14px; }
+.service-cost.negative { color: #e65100; }
+.service-fields { display: grid; grid-template-columns: 2fr 1fr 1fr 1fr 1fr; gap: 8px; }
+.service-fields input, .service-fields select { padding: 6px 8px; font-size: 12px; border: 1px solid #ddd; border-radius: 4px; }
+.service-fields label { font-size: 10px; color: #888; display: block; margin-bottom: 2px; }
+.service-category { background: #e3f2fd; color: #1565c0; padding: 2px 8px; border-radius: 4px; font-size: 11px; margin-left: 8px; }
+pre { background: #263238; color: #aed581; padding: 16px; border-radius: 8px; font-size: 11px; overflow-x: auto; white-space: pre-wrap; max-height: 500px; overflow-y: auto; }
+.sql-container { position: relative; }
+section { margin-bottom: 24px; }
+section h2 { font-size: 15px; font-weight: 600; margin-bottom: 12px; color: #333; }
+.btn-group { display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap; }
+.cobro-card { border: 1px solid #4caf50; border-radius: 8px; padding: 12px; margin-bottom: 8px; background: #e8f5e9; }
+.cobro-card.pending { border-color: #ff9800; background: #fff8e1; }
+.validation-item { padding: 10px 14px; border-radius: 6px; font-size: 13px; margin-bottom: 8px; display: flex; align-items: center; gap: 10px; }
+.validation-item.error { background: #ffebee; color: #c62828; }
+.validation-item.warning { background: #fff3e0; color: #e65100; }
+.validation-item.ok { background: #e8f5e9; color: #2e7d32; }
+.config-section { background: #fafafa; padding: 16px; border-radius: 8px; margin-bottom: 16px; }
+.config-section h3 { font-size: 14px; margin-bottom: 10px; color: #333; display: flex; align-items: center; gap: 8px; }
+.config-section .count-badge { background: #e3f2fd; color: #1976d2; padding: 2px 8px; border-radius: 10px; font-size: 11px; }
+.match-indicator { font-size: 11px; padding: 2px 6px; border-radius: 4px; margin-left: 8px; }
+.match-indicator.exact { background: #e8f5e9; color: #2e7d32; }
+.match-indicator.partial { background: #fff3e0; color: #e65100; }
+.match-indicator.none { background: #ffebee; color: #c62828; }
+.sql-box { background: #263238; color: #aed581; padding: 10px; border-radius: 6px; font-family: monospace; font-size: 11px; margin: 8px 0; overflow-x: auto; }
+.data-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; }
+@media (max-width: 900px) { .data-grid { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+<div class="container">
+<h1>🧳 TXTools - Importador de Viajes v9 (JSONB)</h1>
+
+<div class="tabs">
+<button class="tab-btn active" onclick="showTab('config')">0. Cargar datos</button>
+<button class="tab-btn" onclick="showTab('pegar')">1. Pegar Excel</button>
+<button class="tab-btn" onclick="showTab('revisar')">2. Revisar</button>
+<button class="tab-btn" onclick="showTab('validar')">3. Validar</button>
+<button class="tab-btn" onclick="showTab('sql')">4. SQL</button>
+</div>
+
+<!-- PANEL 0: CARGAR DATOS -->
+<div id="panel-config" class="panel active">
+<div class="alert alert-info">
+<strong>📊 Cargar datos maestros de Supabase</strong><br>
+Ejecuta las consultas SQL y pega los resultados para validar clientes, asesores y proveedores.
+</div>
+
+<div class="data-grid">
+<div class="config-section">
+<h3>👥 Clientes <span class="count-badge" id="clientes-badge">0</span></h3>
+<div class="sql-box">SELECT json_agg(json_build_object('id', id, 'nombre', nombre)) FROM clientes;</div>
+<textarea id="clientes-json" style="height: 60px;" placeholder='[{"id":"xxx","nombre":"LEANDRO"}]'></textarea>
+</div>
+
+<div class="config-section">
+<h3>🧑‍💼 Asesores <span class="count-badge" id="asesores-badge">0</span></h3>
+<div class="sql-box">SELECT json_agg(json_build_object('id', id, 'nombre', nombre)) FROM asesores;</div>
+<textarea id="asesores-json" style="height: 60px;" placeholder='[{"id":"xxx","nombre":"Juli"}]'></textarea>
+</div>
+
+<div class="config-section">
+<h3>🏢 Proveedores <span class="count-badge" id="proveedores-badge">0</span></h3>
+<div class="sql-box">SELECT json_agg(json_build_object('id', id, 'nombre', nombre)) FROM proveedores;</div>
+<textarea id="proveedores-json" style="height: 60px;" placeholder='[{"id":"xxx","nombre":"Vueling"}]'></textarea>
+</div>
+</div>
+
+<div class="config-section" style="margin-top: 16px;">
+<h3>🌍 Destinos <span class="count-badge" id="destinos-badge">0</span></h3>
+<div class="sql-box">SELECT json_agg(json_build_object('id', id, 'nombre', nombre)) FROM destinos;</div>
+<textarea id="destinos-json" style="height: 60px;" placeholder='[{"id":"xxx","nombre":"Italia"}]'></textarea>
+</div>
+
+<div class="btn-group">
+<button class="btn-primary" onclick="loadMasterData()">📥 Cargar datos</button>
+<button class="btn-secondary" onclick="loadDemoData()">🎯 Datos de ejemplo</button>
+<button class="btn-secondary" onclick="clearMasterData()">🗑 Limpiar</button>
+</div>
+
+<div id="master-data-result" style="margin-top: 16px;"></div>
+</div>
+
+<!-- PANEL 1: PEGAR EXCEL -->
+<div id="panel-pegar" class="panel">
+<div class="alert alert-info">
+<strong>📋 Pega las filas del viaje</strong> copiadas desde Excel (Costs & Incomes)
+</div>
+<textarea id="excel-input" style="height: 200px;" placeholder="Pega aquí las filas copiadas del Excel..."></textarea>
+<div class="btn-group">
+<button class="btn-primary" onclick="parseExcel()">🔍 Analizar datos</button>
+<button class="btn-secondary" onclick="loadExcelExample()">📄 Cargar ejemplo</button>
+</div>
+<div id="parse-result" style="margin-top: 12px;"></div>
+</div>
+
+<!-- PANEL 2: REVISAR -->
+<div id="panel-revisar" class="panel">
+<div class="stats-grid">
+<div class="stat-box"><div class="stat-num" id="st-serv">0</div><div class="stat-label">Servicios</div></div>
+<div class="stat-box"><div class="stat-num" id="st-coste">0 €</div><div class="stat-label">Coste</div></div>
+<div class="stat-box"><div class="stat-num" id="st-pvp">0 €</div><div class="stat-label">PVP</div></div>
+<div class="stat-box"><div class="stat-num" id="st-margen">0%</div><div class="stat-label">Margen</div></div>
+<div class="stat-box"><div class="stat-num" id="st-cobros">0</div><div class="stat-label">Cobros</div></div>
+</div>
+
+<section>
+<h2>📝 Datos del viaje</h2>
+<div class="field-grid" id="cabecera-fields"></div>
+</section>
+
+<section>
+<h2>🧾 Servicios (<span id="serv-count">0</span>)</h2>
+<div id="servicios-list" style="max-height: 400px; overflow-y: auto;"></div>
+</section>
+
+<section>
+<h2>💰 Cobros del cliente (<span id="cobros-count">0</span>)</h2>
+<div id="cobros-list"></div>
+</section>
+
+<button class="btn-primary" onclick="showTab('validar')" style="width: 100%; margin-top: 16px;">Continuar → Validar</button>
+</div>
+
+<!-- PANEL 3: VALIDAR -->
+<div id="panel-validar" class="panel">
+<h2>✅ Validación</h2>
+<div id="validation-list"></div>
+<div style="margin-top: 16px;">
+<button class="btn-primary" onclick="showTab('sql')" id="btn-generate-sql" style="width: 100%;">Continuar → Generar SQL</button>
+</div>
+</div>
+
+<!-- PANEL 4: SQL -->
+<div id="panel-sql" class="panel">
+<div class="alert alert-info">
+<strong>📋 SQL listo</strong> — Copia y ejecuta en Supabase → SQL Editor
+</div>
+<div class="sql-container">
+<pre id="sql-output">-- Genera el SQL después de validar</pre>
+</div>
+<div class="btn-group" style="margin-top: 12px;">
+<button class="btn-primary" onclick="copySQL()">📋 Copiar SQL</button>
+</div>
+</div>
+</div>
+
+<script>
+// === ESTADO GLOBAL ===
+let viaje = { cabecera: {}, servicios: [], cobros: [] };
+let rawLines = [];
+let masterData = { clientes: [], asesores: [], proveedores: [], destinos: [] };
+
+// === CONFIGURACIÓN ===
+const MESES_ES = {
+  'ene': '01', 'feb': '02', 'mar': '03', 'abr': '04', 'may': '05', 'jun': '06',
+  'jul': '07', 'ago': '08', 'sep': '09', 'sept': '09', 'oct': '10', 'nov': '11', 'dic': '12'
+};
+
+// Mapeo de categorías a arrays del JSON
+const CATEGORIA_TO_ARRAY = {
+  'Transportes aéreos': 'transportesAereos',
+  'Alojamiento': 'alojamientos',
+  'Transportes terrestres': 'trenesFerrysCruceros',
+  'Transfers': 'trasladosTerrestres',
+  'Actividades y visitas': 'visitasGuiadas',
+  'Seguros': 'seguros',
+  'Alquiler equipamiento': 'serviciosVarios',
+  'Otros': 'serviciosVarios'
+};
+
+const CATEGORIAS_DETECT = {
+  'vueling': 'Transportes aéreos', 'volotea': 'Transportes aéreos', 'iberia': 'Transportes aéreos',
+  'ryanair': 'Transportes aéreos', 'air europa': 'Transportes aéreos', 'aerticket': 'Transportes aéreos',
+  'zamer': 'Transportes aéreos',
+  'hotelbeds': 'Alojamiento', 'booking': 'Alojamiento', 'expedia': 'Alojamiento', 'hotel': 'Alojamiento',
+  'tren italia': 'Transportes terrestres', 'trenitalia': 'Transportes terrestres', 'renfe': 'Transportes terrestres',
+  'outreach': 'Transfers', 'cosy for you': 'Transfers', 'ciao florence': 'Transfers', 'trf': 'Transfers', 'transfer': 'Transfers',
+  'civitatis': 'Actividades y visitas', 'getyourguide': 'Actividades y visitas', 'tour': 'Actividades y visitas', 'visita': 'Actividades y visitas',
+  'aon': 'Seguros', 'seguro': 'Seguros',
+  'motion4rent': 'Alquiler equipamiento', 'alquiler': 'Alquiler equipamiento',
+};
+
+// === FUNCIONES AUXILIARES ===
+function genId() {
+  const chars = 'abcdefghijklmnopqrstuvwxyz0123456789';
+  let id = '';
+  for (let i = 0; i < 12; i++) id += chars[Math.floor(Math.random() * chars.length)];
+  return id;
+}
+
+function parseNum(val) {
+  if (!val) return 0;
+  let str = String(val).trim().replace(/[€$\s]/g, '').replace(/[^\d.,-]/g, '');
+  if (!str || str === '-') return 0;
+  const isNegative = str.startsWith('-');
+  str = str.replace(/-/g, '');
+  if (str.includes(',') && str.includes('.')) {
+    str = str.replace(/\./g, '').replace(',', '.');
+  } else if (str.includes(',')) {
+    str = str.replace(',', '.');
+  }
+  const num = parseFloat(str);
+  return isNaN(num) ? 0 : (isNegative ? -Math.abs(num) : num);
+}
+
+function parseDate(val) {
+  if (!val) return '';
+  let str = String(val).trim();
+  if (!str || str === '-' || str.includes('रु') || str.includes('€')) return '';
+  
+  const spanishMatch = str.match(/^(\d{1,2})-([a-záéíóú]+)-(\d{2})$/i);
+  if (spanishMatch) {
+    const day = spanishMatch[1].padStart(2, '0');
+    const month = MESES_ES[spanishMatch[2].toLowerCase()];
+    if (month) return `20${spanishMatch[3]}-${month}-${day}`;
+  }
+  
+  const isoMatch = str.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (isoMatch) return `${isoMatch[1]}-${isoMatch[2]}-${isoMatch[3]}`;
+  
+  return '';
+}
+
+function capitalize(str) {
+  if (!str) return '';
+  return str.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ');
+}
+
+function normalizeClientName(str) {
+  if (!str) return '';
+  return str.trim().split(/\s+/).map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ');
+}
+
+function normalizeMedioPago(val) {
+  if (!val) return '';
+  const upper = val.toUpperCase();
+  if (upper.includes('WISE')) return 'Transferencia Wise';
+  if (upper.includes('BBVA')) return 'Transferencia BBVA';
+  if (upper.includes('CREDIT') || upper.includes('MARRON')) return 'Tarjeta Crédit Andorra';
+  return 'Transferencia BBVA';
+}
+
+function detectCategoria(proveedor, desc) {
+  const text = (proveedor + ' ' + desc).toLowerCase();
+  for (const [kw, cat] of Object.entries(CATEGORIAS_DETECT)) {
+    if (text.includes(kw)) return cat;
+  }
+  return 'Otros';
+}
+
+function detectDestinoFromTitle(titulo) {
+  if (!titulo) return '';
+  const t = titulo.toLowerCase();
+  
+  // Mapeo de ciudades/regiones a países
+  const mapping = {
+    'italia': ['roma', 'florencia', 'napoles', 'pompeya', 'venecia', 'milan', 'pisa', 'toscana', 'sicilia', 'amalfi'],
+    'francia': ['paris', 'niza', 'marsella', 'lyon', 'bordeaux', 'provenza'],
+    'españa': ['barcelona', 'madrid', 'sevilla', 'valencia', 'malaga', 'ibiza', 'mallorca'],
+    'portugal': ['lisboa', 'oporto', 'algarve', 'madeira'],
+    'reino unido': ['londres', 'london', 'edimburgo', 'escocia'],
+    'grecia': ['atenas', 'santorini', 'mykonos', 'creta'],
+    'croacia': ['dubrovnik', 'split', 'zagreb'],
+    'alemania': ['berlin', 'munich', 'frankfurt'],
+    'paises bajos': ['amsterdam', 'holanda'],
+    'belgica': ['bruselas', 'brujas'],
+    'austria': ['viena', 'salzburgo'],
+    'suiza': ['zurich', 'ginebra'],
+    'republica checa': ['praga'],
+    'hungria': ['budapest'],
+    'turquia': ['estambul', 'capadocia'],
+    'marruecos': ['marrakech', 'fez'],
+    'egipto': ['cairo', 'luxor'],
+    'estados unidos': ['nueva york', 'new york', 'miami', 'los angeles', 'las vegas'],
+    'mexico': ['cancun', 'riviera maya', 'ciudad de mexico'],
+    'japon': ['tokio', 'tokyo', 'kyoto', 'osaka'],
+    'tailandia': ['bangkok', 'phuket'],
+    'india': ['delhi', 'jaipur', 'agra', 'goa']
+  };
+  
+  for (const [pais, ciudades] of Object.entries(mapping)) {
+    for (const ciudad of ciudades) {
+      if (t.includes(ciudad)) return capitalize(pais);
+    }
+  }
+  return '';
+}
+
+function formatDate(d) {
+  if (!d) return '-';
+  const p = d.split('-');
+  return p.length === 3 ? `${p[2]}/${p[1]}/${p[0]}` : d;
+}
+
+function formatMoney(n) {
+  return new Intl.NumberFormat('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n);
+}
+
+function formatNumES(n) {
+  // Formato europeo para el JSON: "1000" o "1333,33"
+  if (Number.isInteger(n)) return String(n);
+  return n.toFixed(2).replace('.', ',');
+}
+
+// === SIMILITUD ===
+function similarity(s1, s2) {
+  const a = s1.toLowerCase().trim();
+  const b = s2.toLowerCase().trim();
+  if (a === b) return 1;
+  if (a.includes(b) || b.includes(a)) return 0.9;
+  return 0;
+}
+
+function findBestMatch(name, list) {
+  if (!name || !list.length) return null;
+  const normalizedName = name.toLowerCase().trim();
+  
+  for (const item of list) {
+    const itemName = (item.nombre || '').toLowerCase().trim();
+    if (itemName === normalizedName) return { item, type: 'exact' };
+    if (itemName.includes(normalizedName) || normalizedName.includes(itemName)) {
+      return { item, type: 'partial' };
+    }
+  }
+  return null;
+}
+
+// === TABS ===
+function showTab(tab) {
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('panel-' + tab).classList.add('active');
+  const tabs = ['config', 'pegar', 'revisar', 'validar', 'sql'];
+  document.querySelectorAll('.tab-btn')[tabs.indexOf(tab)].classList.add('active');
+  if (tab === 'validar') runValidation();
+  if (tab === 'sql') generateSQL();
+}
+
+// === CARGAR DATOS MAESTROS ===
+function loadMasterData() {
+  try {
+    const clientesJson = document.getElementById('clientes-json').value.trim();
+    const asesoresJson = document.getElementById('asesores-json').value.trim();
+    const proveedoresJson = document.getElementById('proveedores-json').value.trim();
+    const destinosJson = document.getElementById('destinos-json').value.trim();
+    
+    masterData.clientes = clientesJson ? JSON.parse(clientesJson) : [];
+    masterData.asesores = asesoresJson ? JSON.parse(asesoresJson) : [];
+    masterData.proveedores = proveedoresJson ? JSON.parse(proveedoresJson) : [];
+    masterData.destinos = destinosJson ? JSON.parse(destinosJson) : [];
+    
+    masterData.clientes = (masterData.clientes || []).filter(c => c && c.nombre);
+    masterData.asesores = (masterData.asesores || []).filter(a => a && a.nombre);
+    masterData.proveedores = (masterData.proveedores || []).filter(p => p && p.nombre);
+    masterData.destinos = (masterData.destinos || []).filter(d => d && d.nombre);
+    
+    updateBadges();
+    
+    document.getElementById('master-data-result').innerHTML = `
+      <div class="alert alert-success">
+        ✅ <strong>Datos cargados:</strong> ${masterData.clientes.length} clientes, ${masterData.asesores.length} asesores, ${masterData.proveedores.length} proveedores, ${masterData.destinos.length} destinos
+      </div>
+      <button class="btn-success" onclick="showTab('pegar')" style="width: 100%; margin-top: 12px;">
+        ✓ Continuar a importación →
+      </button>
+    `;
+    
+    localStorage.setItem('txtools_v9_clientes', JSON.stringify(masterData.clientes));
+    localStorage.setItem('txtools_v9_asesores', JSON.stringify(masterData.asesores));
+    localStorage.setItem('txtools_v9_proveedores', JSON.stringify(masterData.proveedores));
+    localStorage.setItem('txtools_v9_destinos', JSON.stringify(masterData.destinos));
+    
+  } catch (err) {
+    document.getElementById('master-data-result').innerHTML = `
+      <div class="alert alert-error">❌ Error: ${err.message}</div>
+    `;
+  }
+}
+
+function updateBadges() {
+  document.getElementById('clientes-badge').textContent = masterData.clientes.length;
+  document.getElementById('asesores-badge').textContent = masterData.asesores.length;
+  document.getElementById('proveedores-badge').textContent = masterData.proveedores.length;
+  document.getElementById('destinos-badge').textContent = masterData.destinos.length;
+}
+
+function loadDemoData() {
+  masterData.clientes = [
+    { id: 'mn5usjjzzqkt', nombre: 'Leandro Echeveste' }
+  ];
+  masterData.asesores = [
+    { id: 'mn5s85lpbi3u', nombre: 'Juli' },
+    { id: 'mn5s85lpbi3v', nombre: 'Ami' }
+  ];
+  masterData.proveedores = [
+    { id: '__zamer__', nombre: 'Zamer' },
+    { id: 'prov_vueling', nombre: 'Vueling Airlines SA' },
+    { id: 'prov_volotea', nombre: 'VOLOTEA' },
+    { id: 'prov_civitatis', nombre: 'civitatis' },
+    { id: 'prov_hotelbeds', nombre: 'Hotelbeds SLU' },
+    { id: 'prov_aon', nombre: 'AON - Seguros de viaje' }
+  ];
+  masterData.destinos = [
+    { id: 'dest_italia', nombre: 'Italia' },
+    { id: 'dest_francia', nombre: 'Francia' },
+    { id: 'dest_espana', nombre: 'España' }
+  ];
+  updateBadges();
+  document.getElementById('master-data-result').innerHTML = `
+    <div class="alert alert-success">✅ Datos de ejemplo cargados</div>
+    <button class="btn-success" onclick="showTab('pegar')" style="width: 100%; margin-top: 12px;">✓ Continuar →</button>
+  `;
+}
+
+function clearMasterData() {
+  document.getElementById('clientes-json').value = '';
+  document.getElementById('asesores-json').value = '';
+  document.getElementById('proveedores-json').value = '';
+  document.getElementById('destinos-json').value = '';
+  document.getElementById('master-data-result').innerHTML = '';
+  masterData = { clientes: [], asesores: [], proveedores: [], destinos: [] };
+  updateBadges();
+}
+
+window.onload = function() {
+  try {
+    const c = localStorage.getItem('txtools_v9_clientes');
+    const a = localStorage.getItem('txtools_v9_asesores');
+    const p = localStorage.getItem('txtools_v9_proveedores');
+    const d = localStorage.getItem('txtools_v9_destinos');
+    if (c) masterData.clientes = JSON.parse(c);
+    if (a) masterData.asesores = JSON.parse(a);
+    if (p) masterData.proveedores = JSON.parse(p);
+    if (d) masterData.destinos = JSON.parse(d);
+    updateBadges();
+    if (masterData.clientes.length || masterData.asesores.length || masterData.proveedores.length || masterData.destinos.length) {
+      document.getElementById('master-data-result').innerHTML = `
+        <div class="alert alert-success">✅ Datos recuperados</div>
+        <button class="btn-success" onclick="showTab('pegar')" style="width: 100%; margin-top: 12px;">✓ Continuar →</button>
+      `;
+    }
+  } catch (e) {}
+};
+
+// === PARSEO EXCEL ===
+function parseExcel() {
+  const raw = document.getElementById('excel-input').value;
+  if (!raw.trim()) {
+    document.getElementById('parse-result').innerHTML = '<div class="alert alert-error">❌ Pega datos primero</div>';
+    return;
+  }
+
+  rawLines = raw.split('\n').filter(l => l.trim());
+  viaje = { cabecera: {}, servicios: [], cobros: [] };
+  let cabeceraFound = false;
+  let fechaInicioViaje = '', fechaFinViaje = '';
+
+  rawLines.forEach((line, idx) => {
+    const cols = line.split('\t');
+    if (cols[0]?.toLowerCase().includes('nombre del cliente')) return;
+    
+    const clienteRaw = cols[0]?.trim();
+    const cliente = normalizeClientName(clienteRaw);
+    const asunto = cols[1]?.trim();
+    const asesor = cols[2]?.trim();
+    const pax = parseInt(cols[4]) || 0;
+    const fechaSalida = parseDate(cols[5]);
+    const fechaRegreso = parseDate(cols[6]);
+    const fechaEmision = parseDate(cols[7]);
+    const proveedor = cols[8]?.trim();
+    const medioPrevisto = cols[9]?.trim();
+    const coste = parseNum(cols[18]);
+    const fechaPagoPrev = parseDate(cols[20]);
+    const fechaPagoReal = parseDate(cols[21]);
+    const medioPagoReal = cols[22]?.trim();
+    const precioTotal = parseNum(cols[34]);
+    const cobrosTotal = parseNum(cols[35]);
+    const fechaCobroPrev = parseDate(cols[41]);
+    const fechaCobroReal = parseDate(cols[42]);
+    const metodoCobro = cols[43]?.trim();
+
+    if (fechaSalida && !fechaInicioViaje) fechaInicioViaje = fechaSalida;
+    if (fechaRegreso && !fechaFinViaje) fechaFinViaje = fechaRegreso;
+
+    // Detectar cabecera
+    if (!cabeceraFound && pax > 0 && precioTotal > 0) {
+      cabeceraFound = true;
+      viaje.cabecera = {
+        cliente, asesor: capitalize(asesor), pax,
+        fechaIda: fechaSalida || '', fechaVuelta: fechaRegreso || '',
+        pvp: precioTotal, destino: asunto,
+        destinoNombre: detectDestinoFromTitle(asunto)
+      };
+    }
+    
+    // Detectar cobros (cualquier fila con importe de cobro o fecha de cobro prevista)
+    if (cobrosTotal > 0 || fechaCobroPrev) {
+      const montoCobro = cobrosTotal > 0 ? cobrosTotal : 0;
+      // Evitar duplicados: verificar que no exista ya un cobro con mismo monto y fecha
+      const yaExiste = viaje.cobros.some(c => 
+        c.monto === montoCobro && c.fechaPrevista === fechaCobroPrev && c.fechaReal === fechaCobroReal
+      );
+      if (!yaExiste && (montoCobro > 0 || fechaCobroPrev)) {
+        viaje.cobros.push({
+          id: genId(), 
+          monto: montoCobro,
+          fechaPrevista: fechaCobroPrev || '',
+          fechaReal: fechaCobroReal || '',
+          medioPrevisto: normalizeMedioPago(metodoCobro) || 'Transferencia BBVA',
+          medioReal: fechaCobroReal ? normalizeMedioPago(metodoCobro) : '',
+          cobrado: !!fechaCobroReal
+        });
+      }
+    }
+
+    // Detectar servicios
+    if (proveedor && coste !== 0) {
+      const estaPagado = !!fechaPagoReal;
+      viaje.servicios.push({
+        id: genId(),
+        descripcion: asunto || '(sin descripción)',
+        proveedor,
+        categoria: detectCategoria(proveedor, asunto),
+        coste: coste, // Mantener signo original (negativo para devoluciones)
+        esDevolucion: coste < 0,
+        fechaEmision,
+        fechaPagoPrev,
+        fechaPagoReal,
+        medioPrevisto: normalizeMedioPago(medioPrevisto),
+        medioReal: estaPagado ? normalizeMedioPago(medioPagoReal || medioPrevisto) : '',
+        pagado: estaPagado,
+        responsable: capitalize(asesor)
+      });
+    }
+  });
+
+  // Post-proceso fechas
+  if (fechaInicioViaje && !viaje.cabecera.fechaIda) viaje.cabecera.fechaIda = fechaInicioViaje;
+  if (fechaFinViaje && !viaje.cabecera.fechaVuelta) viaje.cabecera.fechaVuelta = fechaFinViaje;
+
+  const totalCoste = viaje.servicios.reduce((s, x) => s + x.coste, 0);
+  document.getElementById('parse-result').innerHTML = `
+    <div class="alert alert-success">
+      ✅ <strong>${viaje.servicios.length} servicios</strong> | ${viaje.cabecera.cliente} | 
+      ${formatDate(viaje.cabecera.fechaIda)} → ${formatDate(viaje.cabecera.fechaVuelta)} |
+      PVP: ${formatMoney(viaje.cabecera.pvp)}€
+    </div>`;
+
+  renderAll();
+  showTab('revisar');
+}
+
+// === RENDERIZADO ===
+function renderAll() {
+  renderCabecera();
+  renderServicios();
+  renderCobros();
+  updateStats();
+}
+
+function renderCabecera() {
+  const c = viaje.cabecera;
+  const clienteMatch = findBestMatch(c.cliente, masterData.clientes);
+  const asesorMatch = findBestMatch(c.asesor, masterData.asesores);
+  const destinoMatch = findBestMatch(c.destinoNombre, masterData.destinos);
+  
+  const fields = [
+    { key: 'cliente', label: 'Cliente', required: true, match: clienteMatch },
+    { key: 'destino', label: 'Título viaje', required: true },
+    { key: 'destinoNombre', label: 'Destino (país)', required: false, match: destinoMatch },
+    { key: 'asesor', label: 'Asesor', required: true, match: asesorMatch },
+    { key: 'pax', label: 'PAX', type: 'number', required: true },
+    { key: 'fechaIda', label: 'Fecha ida', type: 'date', required: true },
+    { key: 'fechaVuelta', label: 'Fecha vuelta', type: 'date', required: true },
+    { key: 'pvp', label: 'PVP €', type: 'number', required: true },
+  ];
+
+  document.getElementById('cabecera-fields').innerHTML = fields.map(f => {
+    const val = c[f.key] || '';
+    let indicator = '';
+    if (f.match?.type === 'exact') indicator = '<span class="match-indicator exact">✓</span>';
+    else if (f.match?.type === 'partial') indicator = `<span class="match-indicator partial">≈ ${f.match.item.nombre}</span>`;
+    else if (f.match === null && f.key === 'cliente') indicator = '<span class="match-indicator exact">🆕 Nuevo</span>';
+    else if (f.match === null && f.key === 'destinoNombre' && val) indicator = '<span class="match-indicator none">⚠ No encontrado</span>';
+    
+    return `<div class="field-group ${f.required ? 'required' : ''}">
+      <label>${f.label}${indicator}</label>
+      <input type="${f.type || 'text'}" ${f.type === 'number' ? 'step="0.01"' : ''} 
+        value="${val}" onchange="viaje.cabecera['${f.key}']=${f.type === 'number' ? 'parseFloat(this.value)||0' : 'this.value'};renderAll()">
+    </div>`;
+  }).join('');
+}
+
+function renderServicios() {
+  document.getElementById('serv-count').textContent = viaje.servicios.length;
+  
+  document.getElementById('servicios-list').innerHTML = viaje.servicios.map((s, i) => {
+    const provMatch = findBestMatch(s.proveedor, masterData.proveedores);
+    let provIndicator = '';
+    if (provMatch?.type === 'exact') provIndicator = '<span class="match-indicator exact">✓</span>';
+    else if (provMatch?.type === 'partial') provIndicator = '<span class="match-indicator partial">≈</span>';
+    else provIndicator = '<span class="match-indicator none">⚠</span>';
+    
+    const medioOptions = ['Transferencia BBVA', 'Transferencia Wise', 'Tarjeta Crédit Andorra'];
+    
+    return `<div class="service-card ${s.esDevolucion ? 'negative' : ''}">
+      <div class="service-header">
+        <span class="service-title">#${i + 1} ${s.descripcion}${s.esDevolucion ? ' [DEVOLUCIÓN]' : ''}<span class="service-category">${s.categoria}</span></span>
+        <span class="service-cost ${s.esDevolucion ? 'negative' : ''}">${formatMoney(s.coste)} €</span>
+      </div>
+      <div class="service-fields" style="grid-template-columns: 2fr 1fr 1fr 1fr 1fr 1fr 1fr;">
+        <div><label>Proveedor ${provIndicator}</label>
+          <input type="text" value="${s.proveedor}" onchange="viaje.servicios[${i}].proveedor=this.value;renderServicios()">
+        </div>
+        <div><label>Categoría</label>
+          <select onchange="viaje.servicios[${i}].categoria=this.value">
+            ${Object.keys(CATEGORIA_TO_ARRAY).map(cat => `<option value="${cat}" ${s.categoria === cat ? 'selected' : ''}>${cat}</option>`).join('')}
+          </select>
+        </div>
+        <div><label>F. emisión</label>
+          <input type="date" value="${s.fechaEmision}" onchange="viaje.servicios[${i}].fechaEmision=this.value">
+        </div>
+        <div><label>F. pago prev</label>
+          <input type="date" value="${s.fechaPagoPrev}" onchange="viaje.servicios[${i}].fechaPagoPrev=this.value">
+        </div>
+        <div><label>Medio prev</label>
+          <select onchange="viaje.servicios[${i}].medioPrevisto=this.value">
+            <option value="">--</option>
+            ${medioOptions.map(m => `<option value="${m}" ${s.medioPrevisto === m ? 'selected' : ''}>${m.replace('Transferencia ', '').replace('Tarjeta ', '')}</option>`).join('')}
+          </select>
+        </div>
+        <div><label>F. pago real</label>
+          <input type="date" value="${s.fechaPagoReal}" onchange="viaje.servicios[${i}].fechaPagoReal=this.value;viaje.servicios[${i}].pagado=!!this.value">
+        </div>
+        <div><label>Medio real</label>
+          <select onchange="viaje.servicios[${i}].medioReal=this.value">
+            <option value="">--</option>
+            ${medioOptions.map(m => `<option value="${m}" ${s.medioReal === m ? 'selected' : ''}>${m.replace('Transferencia ', '').replace('Tarjeta ', '')}</option>`).join('')}
+          </select>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function renderCobros() {
+  document.getElementById('cobros-count').textContent = viaje.cobros.length;
+  
+  document.getElementById('cobros-list').innerHTML = viaje.cobros.map((c, i) => {
+    return `<div class="cobro-card ${c.cobrado ? '' : 'pending'}">
+      <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+        <strong>${c.cobrado ? '✅ Cobrado' : '⏳ Pendiente'}</strong>
+        <span style="font-weight: 600;">${formatMoney(c.monto)} €</span>
+      </div>
+      <div style="display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 8px;">
+        <div class="field-group"><label>Monto €</label>
+          <input type="number" step="0.01" value="${c.monto}" onchange="viaje.cobros[${i}].monto=parseFloat(this.value)||0;renderCobros();updateStats()">
+        </div>
+        <div class="field-group"><label>F. prevista</label>
+          <input type="date" value="${c.fechaPrevista}" onchange="viaje.cobros[${i}].fechaPrevista=this.value">
+        </div>
+        <div class="field-group"><label>F. real</label>
+          <input type="date" value="${c.fechaReal}" onchange="viaje.cobros[${i}].fechaReal=this.value;viaje.cobros[${i}].cobrado=!!this.value;renderCobros()">
+        </div>
+        <div class="field-group"><label>Medio</label>
+          <select onchange="viaje.cobros[${i}].medioPrevisto=this.value">
+            <option value="Transferencia BBVA" ${c.medioPrevisto?.includes('BBVA') ? 'selected' : ''}>Transferencia BBVA</option>
+            <option value="Transferencia Wise" ${c.medioPrevisto?.includes('Wise') ? 'selected' : ''}>Transferencia Wise</option>
+            <option value="Tarjeta Crédit Andorra" ${c.medioPrevisto?.includes('Crédit') ? 'selected' : ''}>Tarjeta Crédit Andorra</option>
+          </select>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function updateStats() {
+  const totalCoste = viaje.servicios.reduce((s, x) => s + x.coste, 0);
+  const pvp = viaje.cabecera.pvp || 0;
+  const margen = pvp > 0 ? ((pvp - totalCoste) / pvp * 100) : 0;
+  
+  document.getElementById('st-serv').textContent = viaje.servicios.length;
+  document.getElementById('st-coste').textContent = formatMoney(totalCoste) + ' €';
+  document.getElementById('st-pvp').textContent = formatMoney(pvp) + ' €';
+  document.getElementById('st-margen').textContent = margen.toFixed(1) + '%';
+  document.getElementById('st-cobros').textContent = viaje.cobros.length;
+}
+
+// === VALIDACIÓN ===
+function runValidation() {
+  const issues = [];
+  const c = viaje.cabecera;
+  
+  if (!c.cliente) issues.push({ type: 'error', msg: '❌ Falta cliente' });
+  if (!c.destino) issues.push({ type: 'error', msg: '❌ Falta título/destino' });
+  if (!c.pax || c.pax < 1) issues.push({ type: 'error', msg: '❌ PAX debe ser > 0' });
+  if (!c.fechaIda) issues.push({ type: 'error', msg: '❌ Falta fecha ida' });
+  if (!c.fechaVuelta) issues.push({ type: 'error', msg: '❌ Falta fecha vuelta' });
+  if (!c.pvp) issues.push({ type: 'error', msg: '❌ Falta PVP' });
+  
+  const clienteMatch = findBestMatch(c.cliente, masterData.clientes);
+  if (!clienteMatch) {
+    issues.push({ type: 'ok', msg: `🆕 Cliente "${c.cliente}" se creará automáticamente` });
+  } else {
+    issues.push({ type: 'ok', msg: `✓ Cliente encontrado: ${clienteMatch.item.nombre}` });
+  }
+  
+  const asesorMatch = findBestMatch(c.asesor, masterData.asesores);
+  if (!asesorMatch) {
+    issues.push({ type: 'error', msg: `❌ Asesor "${c.asesor}" no existe` });
+  } else {
+    issues.push({ type: 'ok', msg: `✓ Asesor: ${asesorMatch.item.nombre}` });
+  }
+  
+  if (c.destinoNombre) {
+    const destinoMatch = findBestMatch(c.destinoNombre, masterData.destinos);
+    if (destinoMatch) {
+      issues.push({ type: 'ok', msg: `✓ Destino: ${destinoMatch.item.nombre}` });
+    } else {
+      issues.push({ type: 'warning', msg: `⚠️ Destino "${c.destinoNombre}" no encontrado` });
+    }
+  }
+  
+  if (viaje.servicios.length === 0) {
+    issues.push({ type: 'error', msg: '❌ No hay servicios' });
+  } else {
+    issues.push({ type: 'ok', msg: `✓ ${viaje.servicios.length} servicios` });
+  }
+  
+  const errores = issues.filter(i => i.type === 'error').length;
+  if (errores === 0) {
+    issues.unshift({ type: 'ok', msg: '✅ Listo para importar' });
+  }
+  
+  document.getElementById('validation-list').innerHTML = issues.map(i => 
+    `<div class="validation-item ${i.type}">${i.msg}</div>`
+  ).join('');
+  
+  document.getElementById('btn-generate-sql').disabled = errores > 0;
+}
+
+// === GENERAR SQL ===
+function generateSQL() {
+  const c = viaje.cabecera;
+  const viajeId = genId();
+  const today = new Date().toISOString().split('T')[0];
+  
+  // Buscar IDs
+  const clienteMatch = findBestMatch(c.cliente, masterData.clientes);
+  const asesorMatch = findBestMatch(c.asesor, masterData.asesores);
+  const destinoMatch = findBestMatch(c.destinoNombre, masterData.destinos);
+  
+  const clienteId = clienteMatch?.item?.id || '';
+  const asesorId = asesorMatch?.item?.id || '';
+  const destinoId = destinoMatch?.item?.id || '';
+  
+  // Calcular totales
+  const costeTotal = viaje.servicios.reduce((s, x) => s + x.coste, 0);
+  const pvp = c.pvp || 0;
+  const margenEuros = pvp - costeTotal;
+  const pvpPorPersona = c.pax > 0 ? pvp / c.pax : pvp;
+  
+  // Agrupar servicios por categoría
+  const serviciosPorCategoria = {};
+  for (const cat of Object.keys(CATEGORIA_TO_ARRAY)) {
+    serviciosPorCategoria[CATEGORIA_TO_ARRAY[cat]] = [];
+  }
+  
+  // Crear proveedores para financiero
+  const proveedoresFinanciero = [];
+  
+  viaje.servicios.forEach(s => {
+    const arrayName = CATEGORIA_TO_ARRAY[s.categoria] || 'serviciosVarios';
+    const provMatch = findBestMatch(s.proveedor, masterData.proveedores);
+    const provId = provMatch?.item?.id || '';
+    const respMatch = findBestMatch(s.responsable, masterData.asesores);
+    const respId = respMatch?.item?.id || asesorId;
+    
+    const servId = s.id;
+    const sourceRef = `${arrayName}:${servId}`;
+    
+    // Servicio para el array de servicios
+    const servicio = {
+      id: servId,
+      proveedorId: provId,
+      observaciones: s.descripcion,
+      responsableId: respId,
+      costePorServicio: formatNumES(s.coste)
+    };
+    
+    // Añadir fechas según categoría
+    if (arrayName === 'transportesAereos') {
+      servicio.fechaIda = c.fechaIda;
+      servicio.fechaVuelta = c.fechaVuelta;
+      servicio.tipoViaje = 'idavuelta';
+      servicio.tramos = [];
+    } else if (arrayName === 'alojamientos') {
+      servicio.fechaCheckin = c.fechaIda;
+      servicio.fechaCheckout = c.fechaVuelta;
+      servicio.noches = '';
+    } else {
+      servicio.fecha = c.fechaIda;
+    }
+    
+    serviciosPorCategoria[arrayName].push(servicio);
+    
+    // Proveedor para financiero (incluyendo devoluciones)
+    proveedoresFinanciero.push({
+      id: genId(),
+      sourceRef: sourceRef,
+      proveedorId: provId,
+      nombreManual: s.proveedor,
+      serviceLabel: s.categoria,
+      importeTotal: formatNumES(s.coste),
+      fechaEmision: s.fechaEmision || today,
+      responsableId: respId,
+      observaciones: s.esDevolucion ? 'DEVOLUCIÓN' : '',
+      facturaNumero: '',
+      comisionExpedia: null,
+      _reglaPago: '',
+      checkinDate: '',
+      plazos: [{
+        id: genId(),
+        importe: formatNumES(s.coste),
+        fechaPrevista: s.fechaPagoPrev || '',
+        fechaReal: s.fechaPagoReal || '',
+        medioPrevisto: s.medioPrevisto || '',
+        medioReal: s.pagado ? (s.medioReal || s.medioPrevisto || '') : '',
+        pagado: s.pagado
+      }]
+    });
+  });
+  
+  // Crear cobros del cliente
+  const cobrosCliente = viaje.cobros.map(co => ({
+    id: co.id,
+    importe: formatNumES(co.monto),
+    fechaPrevista: co.fechaPrevista,
+    fechaReal: co.fechaReal,
+    medioPrevisto: co.medioPrevisto,
+    medioReal: co.cobrado ? (co.medioReal || co.medioPrevisto || '') : '',
+    cobrado: co.cobrado
+  }));
+  
+  // Construir el objeto data completo
+  const data = {
+    id: viajeId,
+    tipo: 'individual',
+    pax: String(c.pax),
+    asesor: asesorId,
+    estado: 'Vendido',
+    margen: 25,
+    cliente: '',
+    clienteId: clienteId,
+    destino: '',
+    destinoId: destinoId,
+    fechaIda: c.fechaIda,
+    fechaVuelta: c.fechaVuelta,
+    fechaGenerado: today,
+    fechaVendido: today,
+    observaciones: c.destino,
+    contabilizado: false,
+    _pvpTotal: pvp,
+    _costeTotal: costeTotal,
+    _margenEuros: margenEuros,
+    _paxFinanciero: c.pax,
+    _pvpPorPersona: pvpPorPersona,
+    _precioPorPersona: pvpPorPersona,
+    
+    // Arrays de servicios
+    transportesAereos: serviciosPorCategoria.transportesAereos,
+    alojamientos: serviciosPorCategoria.alojamientos,
+    trenesFerrysCruceros: serviciosPorCategoria.trenesFerrysCruceros,
+    trasladosTerrestres: serviciosPorCategoria.trasladosTerrestres,
+    visitasGuiadas: serviciosPorCategoria.visitasGuiadas,
+    entradasTickets: [],
+    seguros: serviciosPorCategoria.seguros,
+    receptivoLocal: [],
+    serviciosVarios: serviciosPorCategoria.serviciosVarios,
+    dietasTourLider: [],
+    honorariosTourLider: [],
+    
+    // Financiero
+    financiero: {
+      conta: false,
+      paxFinanciero: String(c.pax),
+      agenteReservaId: '',
+      observacionesCabecera: '',
+      observacionesProveedores: '',
+      cliente: {
+        clienteId: clienteId,
+        importeTotal: formatNumES(pvp),
+        observaciones: '',
+        observacionesSeccion: '',
+        plazos: cobrosCliente
+      },
+      proveedores: proveedoresFinanciero
+    }
+  };
+  
+  // Generar SQL
+  const esClienteNuevo = !clienteMatch;
+  const clienteIdFinal = clienteId || genId(); // Generar ID para cliente nuevo
+  
+  // Actualizar clienteId en el data si es nuevo
+  if (esClienteNuevo) {
+    data.clienteId = clienteIdFinal;
+    data.financiero.cliente.clienteId = clienteIdFinal;
+  }
+  
+  const jsonStr = JSON.stringify(data, null, 2);
+  
+  let sql = `-- =============================================
+-- IMPORTACIÓN: ${c.cliente} - ${c.destino}
+-- Generado: ${new Date().toLocaleString('es-ES')}
+-- Cliente: ${esClienteNuevo ? 'NUEVO (se creará)' : 'Existente'}
+-- =============================================
+
+`;
+
+  // Si el cliente es nuevo, añadir INSERT
+  if (esClienteNuevo) {
+    sql += `-- CREAR CLIENTE NUEVO
+INSERT INTO clientes (id, nombre, created_at)
+VALUES ('${clienteIdFinal}', '${c.cliente.replace(/'/g, "''")}', NOW())
+ON CONFLICT (id) DO NOTHING;
+
+`;
+  }
+
+  sql += `-- CREAR VIAJE
+INSERT INTO viajes (id, data, created_at, updated_at)
+VALUES (
+  '${viajeId}',
+  '${jsonStr.replace(/'/g, "''")}'::jsonb,
+  NOW(),
+  NOW()
+);
+
+-- Verificar:
+-- SELECT data->>'cliente', data->>'clienteId' FROM viajes WHERE id = '${viajeId}';`;
+  
+  document.getElementById('sql-output').textContent = sql;
+}
+
+function copySQL() {
+  const sql = document.getElementById('sql-output').textContent;
+  
+  // Método alternativo para archivos locales
+  const textarea = document.createElement('textarea');
+  textarea.value = sql;
+  textarea.style.position = 'fixed';
+  textarea.style.opacity = '0';
+  document.body.appendChild(textarea);
+  textarea.select();
+  
+  try {
+    document.execCommand('copy');
+    alert('✅ SQL copiado');
+  } catch (err) {
+    alert('Error al copiar. Selecciona el texto manualmente con Ctrl+A y Ctrl+C');
+  }
+  
+  document.body.removeChild(textarea);
+}
+
+// === EJEMPLO ===
+function loadExcelExample() {
+  document.getElementById('excel-input').value = `Nombre del cliente	Asunto	Comercial / Asesor	FECHA RECIBIDO	PAX	Fecha salida	Fecha regreso	FECHA EMISION 	Proveedor	Partida	Rs Previsto	Tipo INR	Rs Real	Tipo Real	$ Previsto	Tipo USD	$ Real	Mir	Coste total EUR	Pagos en EUR	Fecha Prevista	Fecha real	Medio de pago	Coste total	Total pagado	Pendiente	Nº Factura 	Notas	Nº Viajeros	Nombre	Apellido	Apellido 2	Nº viajero	Precio viajero	Precio total en EUR	Cobros en EUR	P USD	Total USD	Tipo	Cobros USD	Tipo2	Fecha prevista del cobro	Fecha real del cobro	Metodo de cobro
+LEANDRO ECHEVESTE 	ROMA POMPEYA FLORENCIA	Juli	12-ene-26	2							रु 0		रु 0					4.340,96 €	965,92 €	3.375,04 €		1	LEANDRO	ECHEVESTE	MOREIRO		5.894,00 €	5.894,00 €	3.543,00 €						2-mar-26	2-mar-26	BBVA
+LEANDRO ECHEVESTE 	nuevo pasaje vuelta 	Ami		1-jul-26	11-jul-26	20-mar-26	Vueling Airlines SA	WISE								672,72 €	672,72 €	20-mar-26	20-mar-26	WISE								1-jun-26		BBVA
+LEANDRO ECHEVESTE 	VUELO IDA 	Ami					2-mar-26	Vueling Airlines SA	TC CREDIT (MARRON)								293,20 €	293,20 €	2-mar-26	2-mar-26	TC CREDIT (MARRON)
+LEANDRO ECHEVESTE 	seguro 	Ami					2-mar-26	AON - Seguros de viaje	BBVA								145,54 €	145,54 €	15-abr-26	15-abr-26	BBVA`;
+  parseExcel();
+}
+</script>
+</body>
+</html>
