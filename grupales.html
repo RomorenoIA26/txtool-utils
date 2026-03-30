@@ -1,0 +1,1225 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TXTools - Importador Grupales v2</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f5f5f5; padding: 20px; line-height: 1.5; }
+.container { max-width: 1400px; margin: 0 auto; background: white; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); padding: 24px; }
+h1 { font-size: 20px; margin-bottom: 20px; color: #333; }
+h2 { font-size: 16px; margin-bottom: 12px; color: #333; }
+.tabs { display: flex; gap: 8px; margin-bottom: 20px; border-bottom: 1px solid #e0e0e0; padding-bottom: 12px; flex-wrap: wrap; }
+.tab-btn { padding: 10px 16px; border-radius: 8px; font-size: 13px; font-weight: 500; cursor: pointer; border: 1px solid #ddd; background: white; transition: all 0.2s; }
+.tab-btn.active { background: #e8f5e9; color: #2e7d32; border-color: #4caf50; }
+.tab-btn:hover { background: #f5f5f5; }
+.panel { display: none; }
+.panel.active { display: block; }
+.alert { padding: 12px 16px; border-radius: 8px; font-size: 13px; margin-bottom: 12px; }
+.alert-info { background: #e3f2fd; color: #1565c0; }
+.alert-success { background: #e8f5e9; color: #2e7d32; }
+.alert-warning { background: #fff3e0; color: #e65100; }
+.alert-error { background: #ffebee; color: #c62828; }
+textarea { width: 100%; font-family: 'Monaco', 'Consolas', monospace; font-size: 11px; padding: 12px; border: 1px solid #ddd; border-radius: 8px; resize: vertical; }
+button { padding: 10px 20px; border-radius: 8px; font-size: 14px; cursor: pointer; border: none; transition: all 0.2s; }
+.btn-primary { background: #4caf50; color: white; }
+.btn-primary:hover { background: #43a047; }
+.btn-primary:disabled { background: #a5d6a7; cursor: not-allowed; }
+.btn-secondary { background: #f5f5f5; color: #333; border: 1px solid #ddd; }
+.btn-secondary:hover { background: #e0e0e0; }
+.btn-success { background: #4caf50; color: white; }
+.btn-success:hover { background: #43a047; }
+.stats-grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 12px; margin: 16px 0; }
+.stat-box { background: #f5f5f5; padding: 16px; border-radius: 8px; text-align: center; }
+.stat-box.highlight { background: #e8f5e9; border: 1px solid #4caf50; }
+.stat-num { font-size: 22px; font-weight: 600; color: #333; }
+.stat-label { font-size: 11px; color: #666; margin-top: 4px; }
+.field-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 20px; }
+.field-group { display: flex; flex-direction: column; gap: 4px; }
+.field-group.full-width { grid-column: span 2; }
+.field-group.required label::after { content: ' *'; color: #c62828; }
+.field-group label { font-size: 12px; color: #666; font-weight: 500; }
+.field-group input, .field-group select { padding: 8px 12px; border: 1px solid #ddd; border-radius: 6px; font-size: 13px; }
+.field-group input:focus, .field-group select:focus { outline: none; border-color: #4caf50; }
+pre { background: #263238; color: #aed581; padding: 16px; border-radius: 8px; font-size: 11px; overflow-x: auto; white-space: pre-wrap; max-height: 500px; overflow-y: auto; }
+section { margin-bottom: 24px; padding: 16px; background: #fafafa; border-radius: 8px; }
+.btn-group { display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap; }
+.subcliente-card { border: 1px solid #4caf50; border-radius: 8px; padding: 16px; margin-bottom: 12px; background: white; }
+.subcliente-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; padding-bottom: 8px; border-bottom: 1px solid #e0e0e0; }
+.subcliente-title { font-weight: 600; font-size: 14px; color: #2e7d32; }
+.subcliente-pax { background: #e8f5e9; padding: 4px 12px; border-radius: 20px; font-size: 12px; color: #2e7d32; }
+.cobro-row { display: grid; grid-template-columns: 1fr 1fr 1fr 1fr 1fr auto; gap: 8px; margin-bottom: 8px; padding: 8px; background: #f5f5f5; border-radius: 6px; }
+.cobro-row.cobrado { background: #e8f5e9; }
+.cobro-row.pendiente { background: #fff8e1; }
+.cobro-row input, .cobro-row select { padding: 6px 8px; font-size: 12px; border: 1px solid #ddd; border-radius: 4px; }
+.cobro-row label { font-size: 10px; color: #888; display: block; margin-bottom: 2px; }
+.service-card { border: 1px solid #e0e0e0; border-radius: 8px; padding: 12px; margin-bottom: 8px; background: white; }
+.service-card.negative { border-color: #ff9800; background: #fff8e1; }
+.service-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+.service-title { font-weight: 500; font-size: 13px; }
+.service-cost { font-weight: 600; font-size: 14px; }
+.service-cost.negative { color: #e65100; }
+.service-fields { display: grid; grid-template-columns: 2fr 1fr 1fr 1fr 1fr 1fr 1fr; gap: 8px; }
+.service-fields input, .service-fields select { padding: 6px 8px; font-size: 12px; border: 1px solid #ddd; border-radius: 4px; }
+.service-fields label { font-size: 10px; color: #888; display: block; margin-bottom: 2px; }
+.service-category { background: #e3f2fd; color: #1565c0; padding: 2px 8px; border-radius: 4px; font-size: 11px; margin-left: 8px; }
+.validation-item { padding: 10px 14px; border-radius: 6px; font-size: 13px; margin-bottom: 8px; }
+.validation-item.error { background: #ffebee; color: #c62828; }
+.validation-item.warning { background: #fff3e0; color: #e65100; }
+.validation-item.ok { background: #e8f5e9; color: #2e7d32; }
+.config-section { background: #fafafa; padding: 16px; border-radius: 8px; margin-bottom: 16px; }
+.config-section h3 { font-size: 14px; margin-bottom: 10px; color: #333; display: flex; align-items: center; gap: 8px; }
+.config-section .count-badge { background: #e8f5e9; color: #2e7d32; padding: 2px 8px; border-radius: 10px; font-size: 11px; }
+.match-indicator { font-size: 11px; padding: 2px 6px; border-radius: 4px; margin-left: 8px; }
+.match-indicator.exact { background: #e8f5e9; color: #2e7d32; }
+.match-indicator.partial { background: #fff3e0; color: #e65100; }
+.match-indicator.none { background: #ffebee; color: #c62828; }
+.sql-box { background: #263238; color: #aed581; padding: 10px; border-radius: 6px; font-family: monospace; font-size: 11px; margin: 8px 0; overflow-x: auto; }
+.data-grid { display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 12px; }
+@media (max-width: 1000px) { .data-grid { grid-template-columns: 1fr 1fr; } }
+@media (max-width: 600px) { .data-grid { grid-template-columns: 1fr; } }
+.badge-grupal { background: #4caf50; color: white; padding: 4px 12px; border-radius: 20px; font-size: 12px; margin-left: 12px; }
+</style>
+</head>
+<body>
+<div class="container">
+<h1>🧳 TXTools - Importador de Viajes GRUPALES v2 <span class="badge-grupal">GRUPAL</span></h1>
+
+<div class="tabs">
+<button class="tab-btn active" onclick="showTab('config')">0. Cargar datos</button>
+<button class="tab-btn" onclick="showTab('pegar')">1. Pegar Excel</button>
+<button class="tab-btn" onclick="showTab('revisar')">2. Revisar</button>
+<button class="tab-btn" onclick="showTab('validar')">3. Validar</button>
+<button class="tab-btn" onclick="showTab('sql')">4. SQL</button>
+</div>
+
+<!-- PANEL 0: CARGAR DATOS -->
+<div id="panel-config" class="panel active">
+<div class="alert alert-info">
+<strong>📊 Cargar datos maestros de Supabase</strong><br>
+Ejecuta las consultas SQL y pega los resultados.
+</div>
+
+<div class="data-grid">
+<div class="config-section">
+<h3>👥 Clientes <span class="count-badge" id="clientes-badge">0</span></h3>
+<div class="sql-box">SELECT json_agg(json_build_object('id', id, 'nombre', nombre)) FROM clientes;</div>
+<textarea id="clientes-json" style="height: 60px;" placeholder='[{"id":"xxx","nombre":"SONIA FLORES"}]'></textarea>
+</div>
+
+<div class="config-section">
+<h3>🧑‍💼 Asesores <span class="count-badge" id="asesores-badge">0</span></h3>
+<div class="sql-box">SELECT json_agg(json_build_object('id', id, 'nombre', nombre)) FROM asesores;</div>
+<textarea id="asesores-json" style="height: 60px;" placeholder='[{"id":"xxx","nombre":"Ami"}]'></textarea>
+</div>
+
+<div class="config-section">
+<h3>🏢 Proveedores <span class="count-badge" id="proveedores-badge">0</span></h3>
+<div class="sql-box">SELECT json_agg(json_build_object('id', id, 'nombre', nombre)) FROM proveedores;</div>
+<textarea id="proveedores-json" style="height: 60px;" placeholder='[{"id":"xxx","nombre":"Aerticket"}]'></textarea>
+</div>
+
+<div class="config-section">
+<h3>🌍 Destinos <span class="count-badge" id="destinos-badge">0</span></h3>
+<div class="sql-box">SELECT json_agg(json_build_object('id', id, 'nombre', nombre)) FROM destinos;</div>
+<textarea id="destinos-json" style="height: 60px;" placeholder='[{"id":"xxx","nombre":"Egipto"}]'></textarea>
+</div>
+</div>
+
+<div class="btn-group">
+<button class="btn-primary" onclick="loadMasterData()">📥 Cargar datos</button>
+<button class="btn-secondary" onclick="clearMasterData()">🗑 Limpiar</button>
+</div>
+
+<div id="master-data-result" style="margin-top: 16px;"></div>
+</div>
+
+<!-- PANEL 1: PEGAR EXCEL -->
+<div id="panel-pegar" class="panel">
+<div class="alert alert-info">
+<strong>📋 Pega las filas del viaje GRUPAL</strong> copiadas desde Excel (Costs & Incomes)<br>
+<small>Incluye: cabecera, sub-clientes (con acompañantes) y servicios</small>
+</div>
+<textarea id="excel-input" style="height: 250px;" placeholder="Pega aquí las filas del viaje grupal..."></textarea>
+<div class="btn-group">
+<button class="btn-primary" onclick="parseExcel()">🔍 Analizar datos</button>
+</div>
+<div id="parse-result" style="margin-top: 12px;"></div>
+</div>
+
+<!-- PANEL 2: REVISAR -->
+<div id="panel-revisar" class="panel">
+<div class="stats-grid">
+<div class="stat-box highlight"><div class="stat-num" id="st-subcli">0</div><div class="stat-label">Sub-clientes</div></div>
+<div class="stat-box highlight"><div class="stat-num" id="st-pax">0</div><div class="stat-label">PAX Total</div></div>
+<div class="stat-box"><div class="stat-num" id="st-pvp">0 €</div><div class="stat-label">PVP Total</div></div>
+<div class="stat-box"><div class="stat-num" id="st-coste">0 €</div><div class="stat-label">Coste</div></div>
+<div class="stat-box"><div class="stat-num" id="st-margen">0%</div><div class="stat-label">Margen</div></div>
+<div class="stat-box"><div class="stat-num" id="st-serv">0</div><div class="stat-label">Servicios</div></div>
+</div>
+
+<section>
+<h2>📝 Datos del viaje grupal</h2>
+<div class="field-grid" id="cabecera-fields"></div>
+</section>
+
+<section>
+<h2>👥 Sub-clientes (<span id="subcli-count">0</span>)</h2>
+<div id="subclientes-list"></div>
+</section>
+
+<section>
+<h2>🧾 Servicios (<span id="serv-count">0</span>)</h2>
+<div id="servicios-list" style="max-height: 400px; overflow-y: auto;"></div>
+</section>
+
+<button class="btn-primary" onclick="showTab('validar')" style="width: 100%; margin-top: 16px;">Continuar → Validar</button>
+</div>
+
+<!-- PANEL 3: VALIDAR -->
+<div id="panel-validar" class="panel">
+<h2>✅ Validación</h2>
+<div id="validation-list"></div>
+<div style="margin-top: 16px;">
+<button class="btn-primary" onclick="showTab('sql')" id="btn-generate-sql" style="width: 100%;">Continuar → Generar SQL</button>
+</div>
+</div>
+
+<!-- PANEL 4: SQL -->
+<div id="panel-sql" class="panel">
+<div class="alert alert-success">
+<strong>📋 SQL listo</strong> — Copia y ejecuta en Supabase → SQL Editor
+</div>
+<pre id="sql-output">-- Genera el SQL después de validar</pre>
+<div class="btn-group" style="margin-top: 12px;">
+<button class="btn-primary" onclick="copySQL()">📋 Copiar SQL</button>
+</div>
+</div>
+</div>
+
+<script>
+// === ESTADO GLOBAL ===
+let viaje = { cabecera: {}, subClientes: [], servicios: [] };
+let rawLines = [];
+let masterData = { clientes: [], asesores: [], proveedores: [], destinos: [] };
+
+// === CONFIGURACIÓN ===
+const MESES_ES = {
+  'ene': '01', 'feb': '02', 'mar': '03', 'abr': '04', 'may': '05', 'jun': '06',
+  'jul': '07', 'ago': '08', 'sep': '09', 'sept': '09', 'oct': '10', 'nov': '11', 'dic': '12'
+};
+
+const CATEGORIA_TO_ARRAY = {
+  'Transportes aéreos': 'transportesAereos',
+  'Alojamiento': 'alojamientos',
+  'Transportes terrestres': 'trenesFerrysCruceros',
+  'Transfers': 'trasladosTerrestres',
+  'Actividades y visitas': 'visitasGuiadas',
+  'Seguros': 'seguros',
+  'Alquiler equipamiento': 'serviciosVarios',
+  'Receptivo': 'receptivoLocal',
+  'Honorarios Tour Líder': 'honorariosTourLider',
+  'Dietas Tour Líder': 'dietasTourLider',
+  'Otros': 'serviciosVarios'
+};
+
+const CATEGORIAS_DETECT = {
+  'vueling': 'Transportes aéreos', 'volotea': 'Transportes aéreos', 'iberia': 'Transportes aéreos',
+  'ryanair': 'Transportes aéreos', 'air europa': 'Transportes aéreos', 'aerticket': 'Transportes aéreos',
+  'zamer': 'Transportes aéreos',
+  'hotelbeds': 'Alojamiento', 'booking': 'Alojamiento', 'expedia': 'Alojamiento', 'hotel': 'Alojamiento',
+  'ouigo': 'Transportes terrestres', 'iryo': 'Transportes terrestres', 'renfe': 'Transportes terrestres',
+  'tren': 'Transportes terrestres',
+  'taxi': 'Transfers', 'transfer': 'Transfers', 'trf': 'Transfers',
+  'civitatis': 'Actividades y visitas', 'getyourguide': 'Actividades y visitas', 'tour': 'Actividades y visitas',
+  'galaxia': 'Receptivo', 'receptivo': 'Receptivo', 'servicios terrestre': 'Receptivo',
+  'aon': 'Seguros', 'seguro': 'Seguros',
+  'visado': 'Otros',
+  'honorario': 'Honorarios Tour Líder', 'tour lider': 'Honorarios Tour Líder', 'tour líder': 'Honorarios Tour Líder',
+  'dieta': 'Dietas Tour Líder', 'gastos en destino': 'Dietas Tour Líder', 'gastos destino': 'Dietas Tour Líder',
+};
+
+// === FUNCIONES AUXILIARES ===
+function genId() {
+  const chars = 'abcdefghijklmnopqrstuvwxyz0123456789';
+  let id = '';
+  for (let i = 0; i < 12; i++) id += chars[Math.floor(Math.random() * chars.length)];
+  return id;
+}
+
+function parseNum(val) {
+  if (!val) return 0;
+  let str = String(val).trim().replace(/[€$\s]/g, '').replace(/[^\d.,-]/g, '');
+  if (!str || str === '-') return 0;
+  const isNegative = str.startsWith('-');
+  str = str.replace(/-/g, '');
+  if (str.includes(',') && str.includes('.')) {
+    str = str.replace(/\./g, '').replace(',', '.');
+  } else if (str.includes(',')) {
+    str = str.replace(',', '.');
+  }
+  const num = parseFloat(str);
+  return isNaN(num) ? 0 : (isNegative ? -Math.abs(num) : num);
+}
+
+function parseDate(val) {
+  if (!val) return '';
+  let str = String(val).trim();
+  if (!str || str === '-' || str.length < 5) return '';
+  
+  // Formato: 11-abr-24 o 3-sept-24
+  const spanishMatch = str.match(/^(\d{1,2})-([a-záéíóú]+)-(\d{2})$/i);
+  if (spanishMatch) {
+    const day = spanishMatch[1].padStart(2, '0');
+    const month = MESES_ES[spanishMatch[2].toLowerCase()];
+    if (month) return `20${spanishMatch[3]}-${month}-${day}`;
+  }
+  
+  // Formato ISO
+  const isoMatch = str.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (isoMatch) return `${isoMatch[1]}-${isoMatch[2]}-${isoMatch[3]}`;
+  
+  return '';
+}
+
+function capitalize(str) {
+  if (!str) return '';
+  return str.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ');
+}
+
+function normalizeClientName(str) {
+  if (!str) return '';
+  return str.trim().split(/\s+/).map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ');
+}
+
+function normalizeMedioPago(val) {
+  if (!val) return '';
+  const upper = val.toUpperCase();
+  if (upper.includes('WISE') || upper.includes('WSE')) return 'Transferencia Wise';
+  if (upper.includes('BBVA')) return 'Transferencia BBVA';
+  if (upper.includes('CREDIT') || upper.includes('MARRON')) return 'Tarjeta Crédit Andorra';
+  if (upper.includes('SEPA')) return 'Transferencia BBVA';
+  if (upper.includes('CTO')) return 'Compensación';
+  return 'Transferencia BBVA';
+}
+
+function detectCategoria(proveedor, desc) {
+  const text = (proveedor + ' ' + desc).toLowerCase();
+  for (const [kw, cat] of Object.entries(CATEGORIAS_DETECT)) {
+    if (text.includes(kw)) return cat;
+  }
+  return 'Otros';
+}
+
+function detectDestinoFromTitle(titulo) {
+  if (!titulo) return '';
+  const t = titulo.toLowerCase();
+  const mapping = {
+    'egipto': ['egipto', 'cairo', 'luxor', 'aswan'],
+    'italia': ['roma', 'florencia', 'napoles', 'pompeya', 'venecia', 'milan'],
+    'francia': ['paris', 'niza', 'marsella', 'lyon'],
+    'españa': ['barcelona', 'madrid', 'sevilla', 'valencia'],
+    'grecia': ['atenas', 'santorini', 'mykonos'],
+    'turquia': ['estambul', 'capadocia'],
+    'marruecos': ['marrakech', 'fez'],
+    'india': ['delhi', 'jaipur', 'agra'],
+    'japon': ['tokio', 'kyoto', 'osaka'],
+    'tailandia': ['bangkok', 'phuket'],
+  };
+  for (const [pais, keywords] of Object.entries(mapping)) {
+    for (const kw of keywords) {
+      if (t.includes(kw)) return capitalize(pais);
+    }
+  }
+  return '';
+}
+
+function formatDate(d) {
+  if (!d) return '-';
+  const p = d.split('-');
+  return p.length === 3 ? `${p[2]}/${p[1]}/${p[0]}` : d;
+}
+
+function formatMoney(n) {
+  return new Intl.NumberFormat('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n);
+}
+
+function formatNumES(n) {
+  if (Number.isInteger(n)) return String(n);
+  return n.toFixed(2).replace('.', ',');
+}
+
+function similarity(s1, s2) {
+  const a = s1.toLowerCase().trim();
+  const b = s2.toLowerCase().trim();
+  if (a === b) return 1;
+  if (a.includes(b) || b.includes(a)) return 0.9;
+  return 0;
+}
+
+function findBestMatch(name, list) {
+  if (!name || !list.length) return null;
+  const normalizedName = name.toLowerCase().trim();
+  for (const item of list) {
+    const itemName = (item.nombre || '').toLowerCase().trim();
+    if (itemName === normalizedName) return { item, type: 'exact' };
+    if (itemName.includes(normalizedName) || normalizedName.includes(itemName)) {
+      return { item, type: 'partial' };
+    }
+  }
+  return null;
+}
+
+// === TABS ===
+function showTab(tab) {
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('panel-' + tab).classList.add('active');
+  const tabs = ['config', 'pegar', 'revisar', 'validar', 'sql'];
+  document.querySelectorAll('.tab-btn')[tabs.indexOf(tab)].classList.add('active');
+  if (tab === 'validar') runValidation();
+  if (tab === 'sql') generateSQL();
+}
+
+// === CARGAR DATOS MAESTROS ===
+function loadMasterData() {
+  try {
+    const clientesJson = document.getElementById('clientes-json').value.trim();
+    const asesoresJson = document.getElementById('asesores-json').value.trim();
+    const proveedoresJson = document.getElementById('proveedores-json').value.trim();
+    const destinosJson = document.getElementById('destinos-json').value.trim();
+    
+    masterData.clientes = clientesJson ? JSON.parse(clientesJson) : [];
+    masterData.asesores = asesoresJson ? JSON.parse(asesoresJson) : [];
+    masterData.proveedores = proveedoresJson ? JSON.parse(proveedoresJson) : [];
+    masterData.destinos = destinosJson ? JSON.parse(destinosJson) : [];
+    
+    masterData.clientes = (masterData.clientes || []).filter(c => c && c.nombre);
+    masterData.asesores = (masterData.asesores || []).filter(a => a && a.nombre);
+    masterData.proveedores = (masterData.proveedores || []).filter(p => p && p.nombre);
+    masterData.destinos = (masterData.destinos || []).filter(d => d && d.nombre);
+    
+    updateBadges();
+    
+    document.getElementById('master-data-result').innerHTML = `
+      <div class="alert alert-success">
+        ✅ <strong>Datos cargados:</strong> ${masterData.clientes.length} clientes, ${masterData.asesores.length} asesores, ${masterData.proveedores.length} proveedores, ${masterData.destinos.length} destinos
+      </div>
+      <button class="btn-success" onclick="showTab('pegar')" style="width: 100%; margin-top: 12px;">
+        ✓ Continuar a importación →
+      </button>
+    `;
+    
+    localStorage.setItem('txtools_grupales_clientes', JSON.stringify(masterData.clientes));
+    localStorage.setItem('txtools_grupales_asesores', JSON.stringify(masterData.asesores));
+    localStorage.setItem('txtools_grupales_proveedores', JSON.stringify(masterData.proveedores));
+    localStorage.setItem('txtools_grupales_destinos', JSON.stringify(masterData.destinos));
+    
+  } catch (err) {
+    document.getElementById('master-data-result').innerHTML = `
+      <div class="alert alert-error">❌ Error: ${err.message}</div>
+    `;
+  }
+}
+
+function updateBadges() {
+  document.getElementById('clientes-badge').textContent = masterData.clientes.length;
+  document.getElementById('asesores-badge').textContent = masterData.asesores.length;
+  document.getElementById('proveedores-badge').textContent = masterData.proveedores.length;
+  document.getElementById('destinos-badge').textContent = masterData.destinos.length;
+}
+
+function clearMasterData() {
+  document.getElementById('clientes-json').value = '';
+  document.getElementById('asesores-json').value = '';
+  document.getElementById('proveedores-json').value = '';
+  document.getElementById('destinos-json').value = '';
+  document.getElementById('master-data-result').innerHTML = '';
+  masterData = { clientes: [], asesores: [], proveedores: [], destinos: [] };
+  updateBadges();
+}
+
+window.onload = function() {
+  try {
+    const c = localStorage.getItem('txtools_grupales_clientes');
+    const a = localStorage.getItem('txtools_grupales_asesores');
+    const p = localStorage.getItem('txtools_grupales_proveedores');
+    const d = localStorage.getItem('txtools_grupales_destinos');
+    if (c) masterData.clientes = JSON.parse(c);
+    if (a) masterData.asesores = JSON.parse(a);
+    if (p) masterData.proveedores = JSON.parse(p);
+    if (d) masterData.destinos = JSON.parse(d);
+    updateBadges();
+    if (masterData.clientes.length || masterData.asesores.length || masterData.proveedores.length) {
+      document.getElementById('master-data-result').innerHTML = `
+        <div class="alert alert-success">✅ Datos recuperados de sesión anterior</div>
+        <button class="btn-success" onclick="showTab('pegar')" style="width: 100%; margin-top: 12px;">✓ Continuar →</button>
+      `;
+    }
+  } catch (e) {}
+};
+
+// === PARSEO EXCEL GRUPAL ===
+function parseExcel() {
+  const raw = document.getElementById('excel-input').value;
+  if (!raw.trim()) {
+    document.getElementById('parse-result').innerHTML = '<div class="alert alert-error">❌ Pega datos primero</div>';
+    return;
+  }
+
+  rawLines = raw.split('\n').filter(l => l.trim());
+  viaje = { cabecera: {}, subClientes: [], servicios: [] };
+  
+  let cabeceraFound = false;
+  let fechaInicioViaje = '', fechaFinViaje = '';
+  let currentSubCliente = null;
+  let viajerosProcesados = [];
+
+  // Primera pasada: recopilar todos los viajeros
+  rawLines.forEach((line) => {
+    const cols = line.split('\t');
+    if (cols[0]?.toLowerCase().includes('nombre del cliente')) return;
+    
+    const numViajero = parseInt(cols[28]) || 0; // Columna AC = Nº Viajeros
+    const nombre = cols[29]?.trim(); // Columna AD = Nombre
+    const apellido1 = cols[30]?.trim(); // Apellido
+    const apellido2 = cols[31]?.trim(); // Apellido 2
+    const pvpViajero = parseNum(cols[33]); // Precio para este viajero EUR
+    const cobro = parseNum(cols[35]); // Cobros en EUR
+    const fechaCobroPrev = parseDate(cols[41]);
+    const fechaCobroReal = parseDate(cols[42]);
+    const metodoCobro = cols[43]?.trim();
+    
+    if (numViajero > 0 && nombre) {
+      const nombreCompleto = [nombre, apellido1, apellido2].filter(Boolean).join(' ');
+      viajerosProcesados.push({
+        numViajero,
+        nombre: normalizeClientName(nombreCompleto),
+        pvp: pvpViajero,
+        cobros: []
+      });
+    }
+    
+    // Añadir cobro al último viajero procesado si hay
+    if (viajerosProcesados.length > 0 && (cobro > 0 || fechaCobroPrev)) {
+      viajerosProcesados[viajerosProcesados.length - 1].cobros.push({
+        id: genId(),
+        monto: cobro,
+        fechaPrevista: fechaCobroPrev || '',
+        fechaReal: fechaCobroReal || '',
+        medioPrevisto: normalizeMedioPago(metodoCobro) || 'Transferencia BBVA',
+        medioReal: fechaCobroReal ? normalizeMedioPago(metodoCobro) : '',
+        cobrado: !!fechaCobroReal
+      });
+    }
+  });
+
+  // Procesar viajeros para crear sub-clientes
+  // Regla: Si tiene PVP > 0 es sub-cliente principal, si no tiene PVP es acompañante del anterior
+  for (let i = 0; i < viajerosProcesados.length; i++) {
+    const v = viajerosProcesados[i];
+    
+    if (v.pvp > 0) {
+      // Es sub-cliente principal
+      viaje.subClientes.push({
+        id: genId(),
+        nombre: v.nombre,
+        nPersonas: 1,
+        pvpPorPersona: v.pvp,
+        pvpTotal: v.pvp,
+        cobros: v.cobros
+      });
+    } else if (viaje.subClientes.length > 0) {
+      // Es acompañante del sub-cliente anterior
+      const lastSubCli = viaje.subClientes[viaje.subClientes.length - 1];
+      lastSubCli.nPersonas += 1;
+      // Añadir sus cobros al sub-cliente principal
+      lastSubCli.cobros = lastSubCli.cobros.concat(v.cobros);
+      // Recalcular PVP por persona
+      lastSubCli.pvpPorPersona = lastSubCli.pvpTotal / lastSubCli.nPersonas;
+    }
+  }
+
+  // Segunda pasada: cabecera y servicios
+  rawLines.forEach((line) => {
+    const cols = line.split('\t');
+    if (cols[0]?.toLowerCase().includes('nombre del cliente')) return;
+    
+    const clienteParaguas = cols[0]?.trim();
+    const asunto = cols[1]?.trim();
+    const asesor = cols[2]?.trim();
+    const pax = parseInt(cols[4]) || 0;
+    const fechaSalida = parseDate(cols[5]);
+    const fechaRegreso = parseDate(cols[6]);
+    const fechaEmision = parseDate(cols[7]);
+    const proveedor = cols[8]?.trim();
+    const medioPrevisto = cols[9]?.trim();
+    const coste = parseNum(cols[18]);
+    const pagado = parseNum(cols[19]);
+    const fechaPagoPrev = parseDate(cols[20]);
+    const fechaPagoReal = parseDate(cols[21]);
+    const medioPagoReal = cols[22]?.trim();
+    const pvpTotal = parseNum(cols[34]); // Precio total en EUR
+
+    if (fechaSalida && !fechaInicioViaje) fechaInicioViaje = fechaSalida;
+    if (fechaRegreso && !fechaFinViaje) fechaFinViaje = fechaRegreso;
+
+    // Detectar cabecera (primera fila con PVP total)
+    if (!cabeceraFound && pvpTotal > 0) {
+      cabeceraFound = true;
+      viaje.cabecera = {
+        clienteParaguas,
+        asesor: capitalize(asesor),
+        fechaIda: fechaSalida || '',
+        fechaVuelta: fechaRegreso || '',
+        pvp: pvpTotal,
+        destino: clienteParaguas,
+        destinoNombre: detectDestinoFromTitle(clienteParaguas)
+      };
+    }
+
+    // Detectar servicios y plazos de pago
+    const pago = parseNum(cols[19]); // Pagos en EUR
+    const esExpedia = proveedor && proveedor.toLowerCase().includes('expedia');
+    
+    // Caso especial: Expedia con coste negativo = COMISIÓN (no devolución)
+    if (esExpedia && coste < 0 && viaje.servicios.length > 0) {
+      // Buscar el último servicio de Expedia para añadirle la comisión
+      const lastExpediaServicio = viaje.servicios.findLast(s => 
+        s.proveedor && s.proveedor.toLowerCase().includes('expedia') && !s.esDevolucion
+      );
+      if (lastExpediaServicio) {
+        const estaCobrada = !!fechaPagoReal;
+        lastExpediaServicio.comisionExpedia = {
+          importe: Math.abs(coste),
+          fechaPrevistaCobro: fechaPagoPrev,
+          medioCobro: normalizeMedioPago(medioPrevisto),
+          fechaRealCobro: fechaPagoReal || '',
+          medioRealCobro: estaCobrada ? normalizeMedioPago(medioPagoReal || medioPrevisto) : '',
+          cobrada: estaCobrada
+        };
+        // No crear servicio nuevo, ya está fusionado
+        return;
+      }
+    }
+    
+    if (proveedor && coste !== 0) {
+      // Nuevo servicio con su primer plazo
+      const estaPagado = !!fechaPagoReal;
+      const esDevolucion = coste < 0 && !esExpedia; // Expedia negativo ya se maneja arriba
+      viaje.servicios.push({
+        id: genId(),
+        descripcion: asunto || '(sin descripción)',
+        proveedor,
+        categoria: detectCategoria(proveedor, asunto),
+        coste: coste,
+        esDevolucion: esDevolucion,
+        fechaEmision,
+        responsable: capitalize(asesor),
+        comisionExpedia: null, // Se llenará si hay línea de comisión
+        plazos: [{
+          id: genId(),
+          importe: pago > 0 ? pago : Math.abs(coste),
+          fechaPrevista: fechaPagoPrev,
+          fechaReal: fechaPagoReal,
+          medioPrevisto: normalizeMedioPago(medioPrevisto),
+          medioReal: estaPagado ? normalizeMedioPago(medioPagoReal || medioPrevisto) : '',
+          pagado: estaPagado
+        }]
+      });
+    } else if (proveedor && coste === 0 && pago > 0 && viaje.servicios.length > 0) {
+      // Plazo adicional del último servicio con el mismo proveedor
+      const lastServicio = viaje.servicios.findLast(s => 
+        s.proveedor && s.proveedor.toLowerCase() === proveedor.toLowerCase()
+      );
+      if (lastServicio) {
+        const estaPagado = !!fechaPagoReal;
+        lastServicio.plazos.push({
+          id: genId(),
+          importe: pago,
+          fechaPrevista: fechaPagoPrev,
+          fechaReal: fechaPagoReal,
+          medioPrevisto: normalizeMedioPago(medioPrevisto),
+          medioReal: estaPagado ? normalizeMedioPago(medioPagoReal || medioPrevisto) : '',
+          pagado: estaPagado
+        });
+      }
+    }
+  });
+
+  // Post-proceso fechas
+  if (fechaInicioViaje && !viaje.cabecera.fechaIda) viaje.cabecera.fechaIda = fechaInicioViaje;
+  if (fechaFinViaje && !viaje.cabecera.fechaVuelta) viaje.cabecera.fechaVuelta = fechaFinViaje;
+
+  // Calcular PAX total
+  const paxTotal = viaje.subClientes.reduce((s, sc) => s + sc.nPersonas, 0);
+  viaje.cabecera.pax = paxTotal;
+
+  const totalCoste = viaje.servicios.reduce((s, x) => s + x.coste, 0);
+  document.getElementById('parse-result').innerHTML = `
+    <div class="alert alert-success">
+      ✅ <strong>${viaje.subClientes.length} sub-clientes</strong> (${paxTotal} PAX) | 
+      <strong>${viaje.servicios.length} servicios</strong> |
+      ${formatDate(viaje.cabecera.fechaIda)} → ${formatDate(viaje.cabecera.fechaVuelta)} |
+      PVP: ${formatMoney(viaje.cabecera.pvp)}€
+    </div>`;
+
+  renderAll();
+  showTab('revisar');
+}
+
+// === RENDERIZADO ===
+function renderAll() {
+  renderCabecera();
+  renderSubClientes();
+  renderServicios();
+  updateStats();
+}
+
+function renderCabecera() {
+  const c = viaje.cabecera;
+  const asesorMatch = findBestMatch(c.asesor, masterData.asesores);
+  const destinoMatch = findBestMatch(c.destinoNombre, masterData.destinos);
+  
+  const fields = [
+    { key: 'clienteParaguas', label: 'Cliente Paraguas', required: true },
+    { key: 'destino', label: 'Título viaje', required: true },
+    { key: 'destinoNombre', label: 'Destino (país)', match: destinoMatch },
+    { key: 'asesor', label: 'Asesor principal', required: true, match: asesorMatch },
+    { key: 'pax', label: 'PAX Total', type: 'number', required: true },
+    { key: 'fechaIda', label: 'Fecha ida', type: 'date', required: true },
+    { key: 'fechaVuelta', label: 'Fecha vuelta', type: 'date', required: true },
+    { key: 'pvp', label: 'PVP Total €', type: 'number', required: true },
+  ];
+
+  document.getElementById('cabecera-fields').innerHTML = fields.map(f => {
+    const val = c[f.key] || '';
+    let indicator = '';
+    if (f.match?.type === 'exact') indicator = '<span class="match-indicator exact">✓</span>';
+    else if (f.match?.type === 'partial') indicator = `<span class="match-indicator partial">≈ ${f.match.item.nombre}</span>`;
+    
+    return `<div class="field-group ${f.required ? 'required' : ''}">
+      <label>${f.label}${indicator}</label>
+      <input type="${f.type || 'text'}" ${f.type === 'number' ? 'step="0.01"' : ''} 
+        value="${val}" onchange="viaje.cabecera['${f.key}']=${f.type === 'number' ? 'parseFloat(this.value)||0' : 'this.value'};renderAll()">
+    </div>`;
+  }).join('');
+}
+
+function renderSubClientes() {
+  document.getElementById('subcli-count').textContent = viaje.subClientes.length;
+  
+  document.getElementById('subclientes-list').innerHTML = viaje.subClientes.map((sc, i) => {
+    const clienteMatch = findBestMatch(sc.nombre, masterData.clientes);
+    let indicator = '';
+    if (clienteMatch?.type === 'exact') indicator = '<span class="match-indicator exact">✓</span>';
+    else if (clienteMatch?.type === 'partial') indicator = '<span class="match-indicator partial">≈</span>';
+    else indicator = '<span class="match-indicator exact">🆕 Nuevo</span>';
+    
+    const cobrosHtml = sc.cobros.map((co, j) => `
+      <div class="cobro-row ${co.cobrado ? 'cobrado' : 'pendiente'}">
+        <div><label>Importe €</label>
+          <input type="number" step="0.01" value="${co.monto}" onchange="viaje.subClientes[${i}].cobros[${j}].monto=parseFloat(this.value)||0;updateStats()">
+        </div>
+        <div><label>F. prevista</label>
+          <input type="date" value="${co.fechaPrevista}" onchange="viaje.subClientes[${i}].cobros[${j}].fechaPrevista=this.value">
+        </div>
+        <div><label>Medio prev</label>
+          <select onchange="viaje.subClientes[${i}].cobros[${j}].medioPrevisto=this.value">
+            <option value="Transferencia BBVA" ${co.medioPrevisto?.includes('BBVA') ? 'selected' : ''}>BBVA</option>
+            <option value="Transferencia Wise" ${co.medioPrevisto?.includes('Wise') ? 'selected' : ''}>Wise</option>
+            <option value="Tarjeta Crédit Andorra" ${co.medioPrevisto?.includes('Crédit') ? 'selected' : ''}>Crédit Andorra</option>
+          </select>
+        </div>
+        <div><label>F. real</label>
+          <input type="date" value="${co.fechaReal}" onchange="viaje.subClientes[${i}].cobros[${j}].fechaReal=this.value;viaje.subClientes[${i}].cobros[${j}].cobrado=!!this.value;renderSubClientes()">
+        </div>
+        <div><label>Medio real</label>
+          <select onchange="viaje.subClientes[${i}].cobros[${j}].medioReal=this.value" ${!co.cobrado ? 'disabled' : ''}>
+            <option value="">--</option>
+            <option value="Transferencia BBVA" ${co.medioReal?.includes('BBVA') ? 'selected' : ''}>BBVA</option>
+            <option value="Transferencia Wise" ${co.medioReal?.includes('Wise') ? 'selected' : ''}>Wise</option>
+            <option value="Tarjeta Crédit Andorra" ${co.medioReal?.includes('Crédit') ? 'selected' : ''}>Crédit Andorra</option>
+          </select>
+        </div>
+        <div style="display:flex;align-items:center;">
+          <span style="font-size:18px;">${co.cobrado ? '✅' : '⏳'}</span>
+        </div>
+      </div>
+    `).join('');
+    
+    return `<div class="subcliente-card">
+      <div class="subcliente-header">
+        <span class="subcliente-title">#${i + 1} ${sc.nombre} ${indicator}</span>
+        <span class="subcliente-pax">${sc.nPersonas} PAX | ${formatMoney(sc.pvpTotal)}€</span>
+      </div>
+      <div style="display: grid; grid-template-columns: 2fr 1fr 1fr; gap: 12px; margin-bottom: 12px;">
+        <div class="field-group">
+          <label>Nombre cliente</label>
+          <input type="text" value="${sc.nombre}" onchange="viaje.subClientes[${i}].nombre=this.value;renderSubClientes()">
+        </div>
+        <div class="field-group">
+          <label>Nº personas</label>
+          <input type="number" value="${sc.nPersonas}" onchange="viaje.subClientes[${i}].nPersonas=parseInt(this.value)||1;updateStats()">
+        </div>
+        <div class="field-group">
+          <label>PVP Total €</label>
+          <input type="number" step="0.01" value="${sc.pvpTotal}" onchange="viaje.subClientes[${i}].pvpTotal=parseFloat(this.value)||0;updateStats()">
+        </div>
+      </div>
+      <h4 style="font-size: 12px; color: #666; margin-bottom: 8px;">Cobros (${sc.cobros.length})</h4>
+      ${cobrosHtml}
+    </div>`;
+  }).join('');
+}
+
+function renderServicios() {
+  document.getElementById('serv-count').textContent = viaje.servicios.length;
+  
+  const medioOptions = ['Transferencia BBVA', 'Transferencia Wise', 'Tarjeta Crédit Andorra', 'Compensación'];
+  
+  document.getElementById('servicios-list').innerHTML = viaje.servicios.map((s, i) => {
+    const provMatch = findBestMatch(s.proveedor, masterData.proveedores);
+    let provIndicator = '';
+    if (provMatch?.type === 'exact') provIndicator = '<span class="match-indicator exact">✓</span>';
+    else if (provMatch?.type === 'partial') provIndicator = '<span class="match-indicator partial">≈</span>';
+    else provIndicator = '<span class="match-indicator none">⚠</span>';
+    
+    // Renderizar plazos de pago
+    const plazosHtml = (s.plazos || []).map((p, j) => `
+      <div class="plazo-row" style="display: grid; grid-template-columns: 80px 1fr 1fr 1fr 1fr 40px; gap: 8px; padding: 6px; background: #f8f9fa; border-radius: 4px; margin-bottom: 4px;">
+        <div style="display:flex;align-items:center;font-weight:500;font-size:12px;">Plazo ${j+1}</div>
+        <div><label style="font-size:10px;">Importe</label>
+          <input type="number" step="0.01" value="${p.importe}" style="width:100%;" onchange="viaje.servicios[${i}].plazos[${j}].importe=parseFloat(this.value)||0">
+        </div>
+        <div><label style="font-size:10px;">F. prev</label>
+          <input type="date" value="${p.fechaPrevista || ''}" style="width:100%;" onchange="viaje.servicios[${i}].plazos[${j}].fechaPrevista=this.value">
+        </div>
+        <div><label style="font-size:10px;">F. real</label>
+          <input type="date" value="${p.fechaReal || ''}" style="width:100%;" onchange="viaje.servicios[${i}].plazos[${j}].fechaReal=this.value;viaje.servicios[${i}].plazos[${j}].pagado=!!this.value;renderServicios()">
+        </div>
+        <div><label style="font-size:10px;">Medio</label>
+          <select style="width:100%;" onchange="viaje.servicios[${i}].plazos[${j}].medioPrevisto=this.value;if(viaje.servicios[${i}].plazos[${j}].pagado)viaje.servicios[${i}].plazos[${j}].medioReal=this.value">
+            <option value="">--</option>
+            ${medioOptions.map(m => `<option value="${m}" ${p.medioPrevisto === m ? 'selected' : ''}>${m.replace('Transferencia ', '').replace('Tarjeta ', '')}</option>`).join('')}
+          </select>
+        </div>
+        <div style="display:flex;align-items:center;justify-content:center;">
+          <span style="font-size:16px;">${p.pagado ? '✅' : '⏳'}</span>
+        </div>
+      </div>
+    `).join('');
+    
+    const totalPlazos = (s.plazos || []).reduce((sum, p) => sum + (p.importe || 0), 0);
+    const plazosInfo = s.plazos?.length > 1 ? `<span style="color:#666;font-size:12px;margin-left:8px;">(${s.plazos.length} plazos: ${formatMoney(totalPlazos)}€)</span>` : '';
+    
+    // Renderizar comisión Expedia si existe
+    const comisionHtml = s.comisionExpedia ? `
+      <div style="margin-top:8px; padding:8px; background: #e8f5e9; border-radius:4px; border-left: 3px solid #4caf50;">
+        <div style="font-size:11px;color:#2e7d32;margin-bottom:4px;font-weight:600;">💰 Comisión Expedia (ingreso)</div>
+        <div style="display: grid; grid-template-columns: 1fr 1fr 1fr 1fr 40px; gap: 8px;">
+          <div><label style="font-size:10px;">Importe</label>
+            <input type="number" step="0.01" value="${s.comisionExpedia.importe}" style="width:100%;" onchange="viaje.servicios[${i}].comisionExpedia.importe=parseFloat(this.value)||0">
+          </div>
+          <div><label style="font-size:10px;">F. prev cobro</label>
+            <input type="date" value="${s.comisionExpedia.fechaPrevistaCobro || ''}" style="width:100%;" onchange="viaje.servicios[${i}].comisionExpedia.fechaPrevistaCobro=this.value">
+          </div>
+          <div><label style="font-size:10px;">F. real cobro</label>
+            <input type="date" value="${s.comisionExpedia.fechaRealCobro || ''}" style="width:100%;" onchange="viaje.servicios[${i}].comisionExpedia.fechaRealCobro=this.value;viaje.servicios[${i}].comisionExpedia.cobrada=!!this.value;renderServicios()">
+          </div>
+          <div><label style="font-size:10px;">Medio cobro</label>
+            <select style="width:100%;" onchange="viaje.servicios[${i}].comisionExpedia.medioCobro=this.value">
+              <option value="">--</option>
+              ${medioOptions.map(m => `<option value="${m}" ${s.comisionExpedia.medioCobro === m ? 'selected' : ''}>${m.replace('Transferencia ', '').replace('Tarjeta ', '')}</option>`).join('')}
+            </select>
+          </div>
+          <div style="display:flex;align-items:center;justify-content:center;">
+            <span style="font-size:16px;">${s.comisionExpedia.cobrada ? '✅' : '⏳'}</span>
+          </div>
+        </div>
+        <div style="font-size:10px;color:#666;margin-top:4px;">Coste neto: ${formatMoney(s.coste - s.comisionExpedia.importe)} €</div>
+      </div>
+    ` : '';
+    
+    const expediaBadge = s.comisionExpedia ? '<span style="background:#4caf50;color:white;padding:2px 6px;border-radius:4px;font-size:10px;margin-left:8px;">Expedia</span>' : '';
+    
+    return `<div class="service-card ${s.esDevolucion ? 'negative' : ''}">
+      <div class="service-header">
+        <span class="service-title">#${i + 1} ${s.descripcion}${s.esDevolucion ? ' [DEVOLUCIÓN]' : ''}${expediaBadge}${plazosInfo}<span class="service-category">${s.categoria}</span></span>
+        <span class="service-cost ${s.esDevolucion ? 'negative' : ''}">${formatMoney(s.coste)} €</span>
+      </div>
+      <div class="service-fields" style="display: grid; grid-template-columns: 2fr 1fr 1fr; gap: 8px; margin-bottom: 8px;">
+        <div><label>Proveedor ${provIndicator}</label>
+          <input type="text" value="${s.proveedor}" onchange="viaje.servicios[${i}].proveedor=this.value;renderServicios()">
+        </div>
+        <div><label>Categoría</label>
+          <select onchange="viaje.servicios[${i}].categoria=this.value">
+            ${Object.keys(CATEGORIA_TO_ARRAY).map(cat => `<option value="${cat}" ${s.categoria === cat ? 'selected' : ''}>${cat}</option>`).join('')}
+          </select>
+        </div>
+        <div><label>F. emisión</label>
+          <input type="date" value="${s.fechaEmision}" onchange="viaje.servicios[${i}].fechaEmision=this.value">
+        </div>
+      </div>
+      <div style="margin-top:8px;">
+        <div style="font-size:11px;color:#666;margin-bottom:4px;font-weight:500;">Plazos de pago:</div>
+        ${plazosHtml}
+      </div>
+      ${comisionHtml}
+    </div>`;
+  }).join('');
+}
+
+function updateStats() {
+  const paxTotal = viaje.subClientes.reduce((s, sc) => s + sc.nPersonas, 0);
+  const pvpTotal = viaje.subClientes.reduce((s, sc) => s + sc.pvpTotal, 0);
+  const totalCoste = viaje.servicios.reduce((s, x) => s + x.coste, 0);
+  const margen = pvpTotal > 0 ? ((pvpTotal - totalCoste) / pvpTotal * 100) : 0;
+  
+  document.getElementById('st-subcli').textContent = viaje.subClientes.length;
+  document.getElementById('st-pax').textContent = paxTotal;
+  document.getElementById('st-pvp').textContent = formatMoney(pvpTotal) + ' €';
+  document.getElementById('st-coste').textContent = formatMoney(totalCoste) + ' €';
+  document.getElementById('st-margen').textContent = margen.toFixed(1) + '%';
+  document.getElementById('st-serv').textContent = viaje.servicios.length;
+  
+  viaje.cabecera.pax = paxTotal;
+  viaje.cabecera.pvp = pvpTotal;
+}
+
+// === VALIDACIÓN ===
+function runValidation() {
+  const issues = [];
+  const c = viaje.cabecera;
+  
+  if (!c.clienteParaguas) issues.push({ type: 'error', msg: '❌ Falta cliente paraguas' });
+  if (!c.pax || c.pax < 1) issues.push({ type: 'error', msg: '❌ PAX debe ser > 0' });
+  if (!c.fechaIda) issues.push({ type: 'error', msg: '❌ Falta fecha ida' });
+  if (!c.fechaVuelta) issues.push({ type: 'error', msg: '❌ Falta fecha vuelta' });
+  if (!c.pvp) issues.push({ type: 'error', msg: '❌ Falta PVP' });
+  
+  // Verificar cliente paraguas
+  if (c.clienteParaguas) {
+    const clienteParagausMatch = findBestMatch(c.clienteParaguas, masterData.clientes);
+    if (clienteParagausMatch) {
+      issues.push({ type: 'ok', msg: `✓ Cliente paraguas: ${clienteParagausMatch.item.nombre}` });
+    } else {
+      issues.push({ type: 'ok', msg: `🆕 Cliente paraguas "${c.clienteParaguas}" se creará` });
+    }
+  }
+  
+  const asesorMatch = findBestMatch(c.asesor, masterData.asesores);
+  if (!asesorMatch) {
+    issues.push({ type: 'error', msg: `❌ Asesor "${c.asesor}" no existe` });
+  } else {
+    issues.push({ type: 'ok', msg: `✓ Asesor: ${asesorMatch.item.nombre}` });
+  }
+  
+  if (c.destinoNombre) {
+    const destinoMatch = findBestMatch(c.destinoNombre, masterData.destinos);
+    if (destinoMatch) {
+      issues.push({ type: 'ok', msg: `✓ Destino: ${destinoMatch.item.nombre}` });
+    } else {
+      issues.push({ type: 'warning', msg: `⚠️ Destino "${c.destinoNombre}" no encontrado` });
+    }
+  }
+  
+  if (viaje.subClientes.length === 0) {
+    issues.push({ type: 'error', msg: '❌ No hay sub-clientes' });
+  } else {
+    issues.push({ type: 'ok', msg: `✓ ${viaje.subClientes.length} sub-clientes (${viaje.cabecera.pax} PAX)` });
+    
+    // Verificar clientes nuevos
+    const clientesNuevos = viaje.subClientes.filter(sc => !findBestMatch(sc.nombre, masterData.clientes));
+    if (clientesNuevos.length > 0) {
+      issues.push({ type: 'ok', msg: `🆕 ${clientesNuevos.length} clientes nuevos se crearán` });
+    }
+  }
+  
+  if (viaje.servicios.length === 0) {
+    issues.push({ type: 'error', msg: '❌ No hay servicios' });
+  } else {
+    issues.push({ type: 'ok', msg: `✓ ${viaje.servicios.length} servicios` });
+  }
+  
+  const errores = issues.filter(i => i.type === 'error').length;
+  if (errores === 0) {
+    issues.unshift({ type: 'ok', msg: '✅ Listo para importar' });
+  }
+  
+  document.getElementById('validation-list').innerHTML = issues.map(i => 
+    `<div class="validation-item ${i.type}">${i.msg}</div>`
+  ).join('');
+  
+  document.getElementById('btn-generate-sql').disabled = errores > 0;
+}
+
+// === GENERAR SQL ===
+function generateSQL() {
+  const c = viaje.cabecera;
+  const viajeId = genId();
+  const today = new Date().toISOString().split('T')[0];
+  
+  // Buscar IDs
+  const asesorMatch = findBestMatch(c.asesor, masterData.asesores);
+  const destinoMatch = findBestMatch(c.destinoNombre, masterData.destinos);
+  
+  const asesorId = asesorMatch?.item?.id || '';
+  const destinoId = destinoMatch?.item?.id || '';
+  
+  // Cliente paraguas
+  const clienteParaguas = c.clienteParaguas || 'GRUPO SIN NOMBRE';
+  const clienteParagausMatch = findBestMatch(clienteParaguas, masterData.clientes);
+  let clienteParagausId = clienteParagausMatch?.item?.id || '';
+  const esClienteParagausNuevo = !clienteParagausMatch;
+  if (esClienteParagausNuevo) {
+    clienteParagausId = genId();
+  }
+  
+  // Calcular totales
+  const costeTotal = viaje.servicios.reduce((s, x) => s + x.coste, 0);
+  const pvp = c.pvp || 0;
+  const paxTotal = c.pax || 0;
+  const margenEuros = pvp - costeTotal;
+  const pvpPorPersona = paxTotal > 0 ? pvp / paxTotal : pvp;
+  
+  // Crear sub-clientes para el financiero
+  const subClientesFinanciero = [];
+  const clientesNuevos = [];
+  
+  // Añadir cliente paraguas a la lista de nuevos si no existe
+  if (esClienteParagausNuevo) {
+    clientesNuevos.push({ id: clienteParagausId, nombre: clienteParaguas });
+  }
+  
+  viaje.subClientes.forEach(sc => {
+    const clienteMatch = findBestMatch(sc.nombre, masterData.clientes);
+    let clienteId = clienteMatch?.item?.id || '';
+    
+    if (!clienteMatch) {
+      clienteId = genId();
+      clientesNuevos.push({ id: clienteId, nombre: sc.nombre });
+    }
+    
+    const plazos = sc.cobros.map(co => ({
+      id: co.id,
+      importe: formatNumES(co.monto),
+      fechaPrevista: co.fechaPrevista,
+      fechaReal: co.fechaReal,
+      medioPrevisto: co.medioPrevisto,
+      medioReal: co.cobrado ? (co.medioReal || co.medioPrevisto || '') : '',
+      cobrado: co.cobrado
+    }));
+    
+    subClientesFinanciero.push({
+      id: genId(),
+      clienteId: clienteId,
+      nPersonas: String(sc.nPersonas),
+      pvpPorPersona: formatNumES(sc.pvpTotal / sc.nPersonas),
+      observaciones: '',
+      plazos: plazos
+    });
+  });
+  
+  // Agrupar servicios por categoría
+  const serviciosPorCategoria = {};
+  for (const cat of Object.keys(CATEGORIA_TO_ARRAY)) {
+    serviciosPorCategoria[CATEGORIA_TO_ARRAY[cat]] = [];
+  }
+  
+  const proveedoresFinanciero = [];
+  
+  viaje.servicios.forEach(s => {
+    const arrayName = CATEGORIA_TO_ARRAY[s.categoria] || 'serviciosVarios';
+    const provMatch = findBestMatch(s.proveedor, masterData.proveedores);
+    const provId = provMatch?.item?.id || '';
+    const respMatch = findBestMatch(s.responsable, masterData.asesores);
+    const respId = respMatch?.item?.id || asesorId;
+    
+    const servId = s.id;
+    const sourceRef = `${arrayName}:${servId}`;
+    
+    const servicio = {
+      id: servId,
+      proveedorId: provId,
+      observaciones: s.descripcion,
+      responsableId: respId,
+      costePorServicio: formatNumES(Math.abs(s.coste))
+    };
+    
+    if (arrayName === 'transportesAereos') {
+      servicio.fechaIda = c.fechaIda;
+      servicio.fechaVuelta = c.fechaVuelta;
+      servicio.tipoViaje = 'idavuelta';
+      servicio.tramos = [];
+    } else if (arrayName === 'alojamientos') {
+      servicio.fechaCheckin = c.fechaIda;
+      servicio.fechaCheckout = c.fechaVuelta;
+      servicio.noches = '';
+    } else {
+      servicio.fecha = c.fechaIda;
+    }
+    
+    serviciosPorCategoria[arrayName].push(servicio);
+    
+    // Crear plazos desde el array de plazos del servicio
+    const plazosFinanciero = (s.plazos || []).map(p => ({
+      id: genId(),
+      importe: formatNumES(p.importe),
+      fechaPrevista: p.fechaPrevista || '',
+      fechaReal: p.fechaReal || '',
+      medioPrevisto: p.medioPrevisto || '',
+      medioReal: p.pagado ? (p.medioReal || p.medioPrevisto || '') : '',
+      pagado: p.pagado
+    }));
+    
+    // Crear objeto comisionExpedia si existe
+    // FIX v2: Añadidos campos 'importe' y 'medioCobro' que TXTools espera
+    let comisionExpediaObj = null;
+    if (s.comisionExpedia) {
+      const importeStr = formatNumES(s.comisionExpedia.importe);
+      comisionExpediaObj = {
+        importe: importeStr,                                    // Campo requerido por TXTools
+        importeComision: importeStr,                            // Campo duplicado para compatibilidad
+        medioCobro: s.comisionExpedia.medioCobro || '',         // Campo requerido por TXTools
+        fechaPrevistaCobro: s.comisionExpedia.fechaPrevistaCobro || '',
+        medioPrevistoCobro: s.comisionExpedia.medioCobro || '',
+        fechaRealCobro: s.comisionExpedia.fechaRealCobro || '',
+        medioRealCobro: s.comisionExpedia.cobrada ? (s.comisionExpedia.medioRealCobro || s.comisionExpedia.medioCobro || '') : '',
+        cobrada: s.comisionExpedia.cobrada || false
+      };
+    }
+    
+    proveedoresFinanciero.push({
+      id: genId(),
+      sourceRef: sourceRef,
+      proveedorId: provId,
+      nombreManual: s.proveedor,
+      serviceLabel: s.categoria,
+      importeTotal: formatNumES(s.coste),
+      fechaEmision: s.fechaEmision || today,
+      responsableId: respId,
+      observaciones: s.esDevolucion ? 'DEVOLUCIÓN' : '',
+      facturaNumero: '',
+      comisionExpedia: comisionExpediaObj,
+      _reglaPago: '',
+      checkinDate: '',
+      plazos: plazosFinanciero
+    });
+  });
+  
+  // Construir el objeto data completo (GRUPAL)
+  const data = {
+    id: viajeId,
+    tipo: 'grupal',
+    pax: String(paxTotal),
+    asesor: asesorId,
+    estado: 'Vendido',
+    margen: 25,
+    cliente: '',
+    clienteId: clienteParagausId,
+    destino: '',
+    destinoId: destinoId,
+    fechaIda: c.fechaIda,
+    fechaVuelta: c.fechaVuelta,
+    fechaGenerado: today,
+    fechaVendido: today,
+    observaciones: clienteParaguas,
+    contabilizado: false,
+    _pvpTotal: pvp,
+    _costeTotal: costeTotal,
+    _margenEuros: margenEuros,
+    _paxFinanciero: paxTotal,
+    _pvpPorPersona: pvpPorPersona,
+    _precioPorPersona: pvpPorPersona,
+    
+    // Arrays de servicios
+    transportesAereos: serviciosPorCategoria.transportesAereos,
+    alojamientos: serviciosPorCategoria.alojamientos,
+    trenesFerrysCruceros: serviciosPorCategoria.trenesFerrysCruceros,
+    trasladosTerrestres: serviciosPorCategoria.trasladosTerrestres,
+    visitasGuiadas: serviciosPorCategoria.visitasGuiadas,
+    entradasTickets: [],
+    seguros: serviciosPorCategoria.seguros,
+    receptivoLocal: serviciosPorCategoria.receptivoLocal || [],
+    serviciosVarios: serviciosPorCategoria.serviciosVarios,
+    dietasTourLider: serviciosPorCategoria.dietasTourLider || [],
+    honorariosTourLider: serviciosPorCategoria.honorariosTourLider || [],
+    
+    // Financiero (GRUPAL - con subClientes)
+    financiero: {
+      conta: false,
+      paxFinanciero: String(paxTotal),
+      agenteReservaId: '',
+      observacionesCabecera: '',
+      observacionesProveedores: '',
+      cliente: {
+        clienteId: clienteParagausId,
+        subClientes: subClientesFinanciero,
+        importeTotal: formatNumES(pvp),
+        observaciones: '',
+        observacionesSeccion: ''
+      },
+      proveedores: proveedoresFinanciero
+    }
+  };
+  
+  // Generar SQL
+  const jsonStr = JSON.stringify(data, null, 2);
+  
+  let sql = `-- =============================================
+-- IMPORTACIÓN GRUPAL: ${clienteParaguas}
+-- Generado: ${new Date().toLocaleString('es-ES')}
+-- Cliente paraguas: ${clienteParaguas} ${esClienteParagausNuevo ? '(NUEVO)' : '(existente)'}
+-- Sub-clientes: ${viaje.subClientes.length} | PAX: ${paxTotal}
+-- Clientes nuevos: ${clientesNuevos.length}
+-- =============================================
+
+`;
+
+  // Crear clientes nuevos
+  if (clientesNuevos.length > 0) {
+    sql += `-- CREAR CLIENTES NUEVOS\n`;
+    clientesNuevos.forEach(cli => {
+      sql += `INSERT INTO clientes (id, nombre, created_at)
+VALUES ('${cli.id}', '${cli.nombre.replace(/'/g, "''")}', NOW())
+ON CONFLICT (id) DO NOTHING;\n`;
+    });
+    sql += '\n';
+  }
+
+  sql += `-- CREAR VIAJE GRUPAL
+INSERT INTO viajes (id, data, created_at, updated_at)
+VALUES (
+  '${viajeId}',
+  '${jsonStr.replace(/'/g, "''")}'::jsonb,
+  NOW(),
+  NOW()
+);
+
+-- Verificar:
+-- SELECT data->>'observaciones', data->>'tipo', data->'financiero'->'cliente'->'subClientes' FROM viajes WHERE id = '${viajeId}';`;
+  
+  document.getElementById('sql-output').textContent = sql;
+}
+
+function copySQL() {
+  const sql = document.getElementById('sql-output').textContent;
+  const textarea = document.createElement('textarea');
+  textarea.value = sql;
+  textarea.style.position = 'fixed';
+  textarea.style.opacity = '0';
+  document.body.appendChild(textarea);
+  textarea.select();
+  try {
+    document.execCommand('copy');
+    alert('✅ SQL copiado');
+  } catch (err) {
+    alert('Error al copiar. Selecciona manualmente con Ctrl+A y Ctrl+C');
+  }
+  document.body.removeChild(textarea);
+}
+</script>
+</body>
+</html>
