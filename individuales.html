@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>TXTools - Importador de Viajes v9</title>
+<title>TXTools - Importador de Viajes v10</title>
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
 body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f5f5f5; padding: 20px; line-height: 1.5; }
@@ -75,7 +75,7 @@ section h2 { font-size: 15px; font-weight: 600; margin-bottom: 12px; color: #333
 </head>
 <body>
 <div class="container">
-<h1>🧳 TXTools - Importador de Viajes v9 (JSONB)</h1>
+<h1>🧳 TXTools - Importador de Viajes v10 (JSONB)</h1>
 
 <div class="tabs">
 <button class="tab-btn active" onclick="showTab('config')">0. Cargar datos</button>
@@ -502,6 +502,19 @@ function parseExcel() {
   let cabeceraFound = false;
   let fechaInicioViaje = '', fechaFinViaje = '';
 
+  // Lista de medios de pago conocidos (para filtrar servicios mal parseados)
+  const MEDIOS_PAGO = ['bbva', 'wise', 'sepa', 'tc credit', 'tarjeta', 'transferencia', 'efectivo', 'compensacion', 'paypal'];
+  
+  function esProveedorValido(prov) {
+    if (!prov) return false;
+    const p = prov.toLowerCase().trim();
+    for (const medio of MEDIOS_PAGO) {
+      if (p === medio || (p.includes('credit') && p.includes('marron'))) return false;
+    }
+    if (p.length < 3) return false;
+    return true;
+  }
+
   rawLines.forEach((line, idx) => {
     const cols = line.split('\t');
     if (cols[0]?.toLowerCase().includes('nombre del cliente')) return;
@@ -536,14 +549,13 @@ function parseExcel() {
         cliente, asesor: capitalize(asesor), pax,
         fechaIda: fechaSalida || '', fechaVuelta: fechaRegreso || '',
         pvp: precioTotal, destino: asunto,
-        destinoNombre: detectDestinoFromTitle(asunto)
+        destinoNombre: asunto  // Destino directo de columna B
       };
     }
     
-    // Detectar cobros (cualquier fila con importe de cobro o fecha de cobro prevista)
+    // Detectar cobros
     if (cobrosTotal > 0 || fechaCobroPrev) {
       const montoCobro = cobrosTotal > 0 ? cobrosTotal : 0;
-      // Evitar duplicados: verificar que no exista ya un cobro con mismo monto y fecha
       const yaExiste = viaje.cobros.some(c => 
         c.monto === montoCobro && c.fechaPrevista === fechaCobroPrev && c.fechaReal === fechaCobroReal
       );
@@ -561,14 +573,64 @@ function parseExcel() {
     }
 
     // Detectar servicios
-    if (proveedor && coste !== 0) {
+    const esExpedia = proveedor && proveedor.toLowerCase().includes('expedia');
+    
+    // Caso especial: COMISIÓN de Expedia
+    // La comisión SIEMPRE está en la fila inmediatamente siguiente al servicio de Expedia
+    // Detectamos comisión si: coste negativo Y el último servicio añadido es de Expedia
+    if (coste < 0 && viaje.servicios.length > 0) {
+      const ultimoServicio = viaje.servicios[viaje.servicios.length - 1];
+      // Si el último servicio es de Expedia y no tiene comisión, asignar esta fila como comisión
+      if (ultimoServicio.proveedor?.toLowerCase().includes('expedia') && !ultimoServicio.comisionExpedia) {
+        const estaCobrada = !!fechaPagoReal;
+        
+        // Para la comisión, los datos pueden estar en diferentes columnas
+        // Fecha prevista cobro: intentar cols[20], si no cols[41] (última columna visible)
+        let fechaPrevComision = fechaPagoPrev;
+        if (!fechaPrevComision) {
+          // Buscar en otras columnas posibles
+          for (let i = cols.length - 1; i >= 0; i--) {
+            const val = parseDate(cols[i]);
+            if (val && val !== fechaEmision && val !== fechaSalida && val !== fechaRegreso) {
+              fechaPrevComision = val;
+              break;
+            }
+          }
+        }
+        
+        // Medio cobro: intentar cols[9], si no buscar BBVA/Transferencia en otras columnas
+        let medioComision = normalizeMedioPago(medioPrevisto);
+        if (!medioComision) {
+          for (let i = 0; i < cols.length; i++) {
+            const val = cols[i]?.trim()?.toLowerCase();
+            if (val && (val.includes('bbva') || val.includes('wise') || val.includes('transferencia') || val.includes('sepa'))) {
+              medioComision = normalizeMedioPago(cols[i]?.trim());
+              break;
+            }
+          }
+        }
+        
+        ultimoServicio.comisionExpedia = {
+          importe: Math.abs(coste),
+          fechaPrevistaCobro: fechaPrevComision || '',
+          medioCobro: medioComision || '',
+          fechaRealCobro: fechaPagoReal || '',
+          medioRealCobro: estaCobrada ? normalizeMedioPago(medioPagoReal || medioPrevisto) : '',
+          cobrada: estaCobrada
+        };
+        return; // No crear servicio nuevo
+      }
+    }
+
+    // Crear servicio normal solo si el proveedor es válido
+    if (proveedor && coste !== 0 && esProveedorValido(proveedor)) {
       const estaPagado = !!fechaPagoReal;
       viaje.servicios.push({
         id: genId(),
         descripcion: asunto || '(sin descripción)',
         proveedor,
         categoria: detectCategoria(proveedor, asunto),
-        coste: coste, // Mantener signo original (negativo para devoluciones)
+        coste: coste,
         esDevolucion: coste < 0,
         fechaEmision,
         fechaPagoPrev,
@@ -576,7 +638,8 @@ function parseExcel() {
         medioPrevisto: normalizeMedioPago(medioPrevisto),
         medioReal: estaPagado ? normalizeMedioPago(medioPagoReal || medioPrevisto) : '',
         pagado: estaPagado,
-        responsable: capitalize(asesor)
+        responsable: capitalize(asesor),
+        comisionExpedia: null
       });
     }
   });
@@ -585,12 +648,14 @@ function parseExcel() {
   if (fechaInicioViaje && !viaje.cabecera.fechaIda) viaje.cabecera.fechaIda = fechaInicioViaje;
   if (fechaFinViaje && !viaje.cabecera.fechaVuelta) viaje.cabecera.fechaVuelta = fechaFinViaje;
 
+  const serviciosConComision = viaje.servicios.filter(s => s.comisionExpedia).length;
   const totalCoste = viaje.servicios.reduce((s, x) => s + x.coste, 0);
   document.getElementById('parse-result').innerHTML = `
     <div class="alert alert-success">
       ✅ <strong>${viaje.servicios.length} servicios</strong> | ${viaje.cabecera.cliente} | 
       ${formatDate(viaje.cabecera.fechaIda)} → ${formatDate(viaje.cabecera.fechaVuelta)} |
       PVP: ${formatMoney(viaje.cabecera.pvp)}€
+      ${serviciosConComision > 0 ? ` | <span style="color: #4caf50;">${serviciosConComision} comisión(es) Expedia</span>` : ''}
     </div>`;
 
   renderAll();
@@ -852,6 +917,21 @@ function generateSQL() {
     serviciosPorCategoria[arrayName].push(servicio);
     
     // Proveedor para financiero (incluyendo devoluciones)
+    let comisionExpediaObj = null;
+    if (s.comisionExpedia && s.comisionExpedia.importe > 0) {
+      const importeStr = formatNumES(s.comisionExpedia.importe);
+      comisionExpediaObj = {
+        importe: importeStr,
+        importeComision: importeStr,
+        medioCobro: s.comisionExpedia.medioCobro || '',
+        fechaPrevistaCobro: s.comisionExpedia.fechaPrevistaCobro || '',
+        medioPrevistoCobro: s.comisionExpedia.medioCobro || '',
+        fechaRealCobro: s.comisionExpedia.fechaRealCobro || '',
+        medioRealCobro: s.comisionExpedia.cobrada ? (s.comisionExpedia.medioRealCobro || s.comisionExpedia.medioCobro || '') : '',
+        cobrada: s.comisionExpedia.cobrada || false
+      };
+    }
+    
     proveedoresFinanciero.push({
       id: genId(),
       sourceRef: sourceRef,
@@ -863,7 +943,7 @@ function generateSQL() {
       responsableId: respId,
       observaciones: s.esDevolucion ? 'DEVOLUCIÓN' : '',
       facturaNumero: '',
-      comisionExpedia: null,
+      comisionExpedia: comisionExpediaObj,
       _reglaPago: '',
       checkinDate: '',
       plazos: [{
